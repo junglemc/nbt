@@ -25,23 +25,18 @@ const (
 	TagNone = 0xFF
 )
 
-type Codec struct {
-	Reader *bufio.Reader
-	Writer *bufio.Writer
-}
-
-func (c *Codec) readTagType() (t TagType, err error) {
-	tb, err := c.Reader.ReadByte()
+func readTagType(reader *bufio.Reader) (t TagType, err error) {
+	tb, err := readByte(reader)
 	return TagType(tb), err
 }
 
-func (c *Codec) readByte() (v byte, err error) {
-	return c.Reader.ReadByte()
+func readByte(reader *bufio.Reader) (v byte, err error) {
+	return reader.ReadByte()
 }
 
-func (c *Codec) readUInt16() (uint16, error) {
+func readUInt16(reader *bufio.Reader) (uint16, error) {
 	b := make([]byte, 2)
-	n, err := c.Reader.Read(b)
+	n, err := reader.Read(b)
 	if err != nil {
 		return 0, err
 	}
@@ -54,17 +49,17 @@ func (c *Codec) readUInt16() (uint16, error) {
 	return uint16(b[0])<<8 | uint16(b[1]), nil
 }
 
-func (c *Codec) readInt16() (int16, error) {
-	uv, err := c.readUInt16()
+func readInt16(reader *bufio.Reader) (int16, error) {
+	uv, err := readUInt16(reader)
 	if err != nil {
 		return 0, err
 	}
 	return int16(uv), nil
 }
 
-func (c *Codec) readUInt32() (uint32, error) {
+func readUInt32(reader *bufio.Reader) (uint32, error) {
 	b := make([]byte, 4)
-	n, err := c.Reader.Read(b)
+	n, err := reader.Read(b)
 	if err != nil {
 		return 0, err
 	}
@@ -77,17 +72,17 @@ func (c *Codec) readUInt32() (uint32, error) {
 	return uint32(b[0])<<24 | uint32(b[1])<<16 | uint32(b[2])<<8 | uint32(b[3]), nil
 }
 
-func (c *Codec) readInt32() (int32, error) {
-	v, err := c.readUInt32()
+func readInt32(reader *bufio.Reader) (int32, error) {
+	v, err := readUInt32(reader)
 	if err != nil {
 		return 0, err
 	}
 	return int32(v), nil
 }
 
-func (c *Codec) readUInt64() (uint64, error) {
+func readUInt64(reader *bufio.Reader) (uint64, error) {
 	b := make([]byte, 8)
-	n, err := c.Reader.Read(b)
+	n, err := reader.Read(b)
 	if err != nil {
 		return 0, err
 	}
@@ -100,37 +95,37 @@ func (c *Codec) readUInt64() (uint64, error) {
 	return uint64(b[0])<<56 | uint64(b[1])<<48 | uint64(b[2])<<40 | uint64(b[3])<<32 | uint64(b[4])<<24 | uint64(b[5])<<16 | uint64(b[6])<<8 | uint64(b[7]), nil
 }
 
-func (c *Codec) readInt64() (int64, error) {
-	v, err := c.readUInt64()
+func readInt64(reader *bufio.Reader) (int64, error) {
+	v, err := readUInt64(reader)
 	if err != nil {
 		return 0, err
 	}
 	return int64(v), nil
 }
 
-func (c *Codec) readFloat32() (float32, error) {
-	v, err := c.readUInt32()
+func readFloat32(reader *bufio.Reader) (float32, error) {
+	v, err := readUInt32(reader)
 	if err != nil {
 		return 0, err
 	}
 	return math.Float32frombits(v), nil
 }
 
-func (c *Codec) readFloat64() (float64, error) {
-	v, err := c.readUInt64()
+func readFloat64(reader *bufio.Reader) (float64, error) {
+	v, err := readUInt64(reader)
 	if err != nil {
 		return 0, err
 	}
 	return math.Float64frombits(v), nil
 }
 
-func (c *Codec) readByteSlice() ([]byte, error) {
-	length, err := c.readInt32()
+func readByteSlice(reader *bufio.Reader) ([]byte, error) {
+	length, err := readInt32(reader)
 	if err != nil {
 		return nil, err
 	}
 	v := make([]byte, length)
-	readBytes, err := c.Reader.Read(v)
+	readBytes, err := reader.Read(v)
 	if readBytes > int(length) {
 		return v, errors.New("read too many bytes")
 	}
@@ -141,8 +136,8 @@ func (c *Codec) readByteSlice() ([]byte, error) {
 }
 
 // TODO: Modified UTF-8 format
-func (c *Codec) readString() (string, error) {
-	length, err := c.readUInt16()
+func readString(reader *bufio.Reader) (string, error) {
+	length, err := readUInt16(reader)
 	if err != nil {
 		return "", err
 	}
@@ -151,7 +146,7 @@ func (c *Codec) readString() (string, error) {
 	}
 
 	v := make([]byte, length)
-	readBytes, err := c.Reader.Read(v)
+	readBytes, err := reader.Read(v)
 	if err != nil {
 		return "", err
 	}
@@ -164,98 +159,98 @@ func (c *Codec) readString() (string, error) {
 	return string(v), nil
 }
 
-func (c *Codec) writeTagType(t TagType) error {
-	err := c.writeByte(byte(t))
+func writeTagType(writer *bufio.Writer, t TagType) error {
+	err := writeByte(writer, byte(t))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *Codec) writeByte(v byte) error {
-	err := c.Writer.WriteByte(v)
+func writeByte(writer *bufio.Writer, v byte) error {
+	err := writer.WriteByte(v)
 	if err != nil {
 		return err
 	}
-	err = c.Writer.Flush()
+	err = writer.Flush()
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *Codec) writeUInt16(v uint16) error {
+func writeUInt16(writer *bufio.Writer, v uint16) error {
 	b := []byte{byte(v >> 8), byte(v)}
-	_, err := c.Writer.Write(b)
+	_, err := writer.Write(b)
 	if err != nil {
 		return err
 	}
 
-	err = c.Writer.Flush()
+	err = writer.Flush()
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *Codec) writeInt16(v int16) error {
-	return c.writeUInt16(uint16(v))
+func writeInt16(writer *bufio.Writer, v int16) error {
+	return writeUInt16(writer, uint16(v))
 }
 
-func (c *Codec) writeUInt32(v uint32) error {
+func writeUInt32(writer *bufio.Writer, v uint32) error {
 	b := []byte{byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
-	_, err := c.Writer.Write(b)
+	_, err := writer.Write(b)
 	if err != nil {
 		return err
 	}
 
-	err = c.Writer.Flush()
+	err = writer.Flush()
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *Codec) writeInt32(v int32) error {
-	return c.writeUInt32(uint32(v))
+func writeInt32(writer *bufio.Writer, v int32) error {
+	return writeUInt32(writer, uint32(v))
 }
 
-func (c *Codec) writeUInt64(v uint64) error {
+func writeUInt64(writer *bufio.Writer, v uint64) error {
 	b := []byte{byte(v >> 56), byte(v >> 48), byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
-	_, err := c.Writer.Write(b)
+	_, err := writer.Write(b)
 	if err != nil {
 		return err
 	}
 
-	err = c.Writer.Flush()
+	err = writer.Flush()
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *Codec) writeInt64(v int64) error {
-	return c.writeUInt64(uint64(v))
+func writeInt64(writer *bufio.Writer, v int64) error {
+	return writeUInt64(writer, uint64(v))
 }
 
-func (c *Codec) writeFloat32(v float32) error {
-	return c.writeUInt32(math.Float32bits(v))
+func writeFloat32(writer *bufio.Writer, v float32) error {
+	return writeUInt32(writer, math.Float32bits(v))
 }
 
-func (c *Codec) writeFloat64(v float64) error {
-	return c.writeUInt64(math.Float64bits(v))
+func writeFloat64(writer *bufio.Writer, v float64) error {
+	return writeUInt64(writer, math.Float64bits(v))
 }
 
-func (c *Codec) writeByteSlice(v []byte) error {
-	err := c.writeInt32(int32(len(v)))
+func writeByteSlice(writer *bufio.Writer, v []byte) error {
+	err := writeInt32(writer, int32(len(v)))
 	if err != nil {
 		return err
 	}
-	_, err = c.Writer.Write(v)
+	_, err = writer.Write(v)
 	if err != nil {
 		return err
 	}
-	err = c.Writer.Flush()
+	err = writer.Flush()
 	if err != nil {
 		return err
 	}
@@ -263,16 +258,16 @@ func (c *Codec) writeByteSlice(v []byte) error {
 }
 
 // TODO: Modified UTF-8 format
-func (c *Codec) writeString(v string) error {
-	err := c.writeUInt16(uint16(len(v)))
+func writeString(writer *bufio.Writer, v string) error {
+	err := writeUInt16(writer, uint16(len(v)))
 	if err != nil {
 		return err
 	}
-	_, err = c.Writer.Write([]byte(v))
+	_, err = writer.Write([]byte(v))
 	if err != nil {
 		return err
 	}
-	err = c.Writer.Flush()
+	err = writer.Flush()
 	if err != nil {
 		return err
 	}

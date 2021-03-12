@@ -1,66 +1,67 @@
 package internal
 
 import (
+	"bufio"
 	"errors"
 	"reflect"
 )
 
-func (c *Codec) Marshall(tagName string, tagType TagType, v reflect.Value) (err error) {
-	if err = c.writeHeader(tagName, tagType); err != nil {
+func Marshall(writer *bufio.Writer, tagName string, tagType TagType, v reflect.Value) (err error) {
+	if err = writeHeader(writer, tagName, tagType); err != nil {
 		return err
 	}
-	if err = c.writeValue(tagType, v); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *Codec) writeHeader(tagName string, tagType TagType) (err error) {
-	if err = c.writeTagType(tagType); err != nil {
-		return err
-	}
-
-	if err = c.writeString(tagName); err != nil {
+	if err = writeValue(writer, tagType, v); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *Codec) writeValue(tagType TagType, v reflect.Value) error {
+func writeHeader(writer *bufio.Writer, tagName string, tagType TagType) (err error) {
+	if err = writeTagType(writer, tagType); err != nil {
+		return err
+	}
+
+	if err = writeString(writer, tagName); err != nil {
+		return err
+	}
+	return nil
+}
+
+func writeValue(writer *bufio.Writer, tagType TagType, v reflect.Value) error {
 	switch tagType {
 	case TagByte:
-		return c.writeByte(byte(v.Uint()))
+		return writeByte(writer, byte(v.Uint()))
 	case TagShort:
-		return c.writeInt16(int16(v.Int()))
+		return writeInt16(writer, int16(v.Int()))
 	case TagInt:
-		return c.writeInt32(int32(v.Int()))
+		return writeInt32(writer, int32(v.Int()))
 	case TagLong:
-		return c.writeInt64(v.Int())
+		return writeInt64(writer, v.Int())
 	case TagFloat:
-		return c.writeFloat32(float32(v.Float()))
+		return writeFloat32(writer, float32(v.Float()))
 	case TagDouble:
-		return c.writeFloat64(v.Float())
+		return writeFloat64(writer, v.Float())
 	case TagString:
-		return c.writeString(v.String())
+		return writeString(writer, v.String())
 	case TagList:
-		nestedTagType := c.TypeOf(v.Type().Elem())
+		nestedTagType := TypeOf(v.Type().Elem())
 		if v.Len() <= 0 {
 			nestedTagType = TagEnd // Mimic notchian behavior
 		}
 
 		var err error
-		if err = c.writeTagType(nestedTagType); err != nil {
+		if err = writeTagType(writer, nestedTagType); err != nil {
 			return err
 		}
 
 		n := v.Len()
-		if err = c.writeInt32(int32(n)); err != nil {
+		if err = writeInt32(writer, int32(n)); err != nil {
 			return err
 		}
 
 		for i := 0; i < n; i++ {
 			val := v.Index(i)
-			err = c.writeValue(nestedTagType, val)
+			err = writeValue(writer, nestedTagType, val)
 			if err != nil {
 				return err
 			}
@@ -82,22 +83,22 @@ func (c *Codec) writeValue(tagType TagType, v reflect.Value) error {
 				nestedTagName = f.Name
 			}
 
-			nestedTagType := c.TypeOf(f.Type)
+			nestedTagType := TypeOf(f.Type)
 			if f.Tag.Get("nbt_type") == "list" {
 				nestedTagType = TagList
 			}
 
-			err := c.Marshall(nestedTagName, nestedTagType, v.Field(i))
+			err := Marshall(writer, nestedTagName, nestedTagType, v.Field(i))
 			if err != nil {
 				return err
 			}
 		}
-		return c.writeTagType(TagEnd)
+		return writeTagType(writer, TagEnd)
 	case TagByteArray:
-		return c.writeByteSlice(v.Bytes())
+		return writeByteSlice(writer, v.Bytes())
 	case TagIntArray, TagLongArray:
 		n := v.Len()
-		if err := c.writeInt32(int32(n)); err != nil {
+		if err := writeInt32(writer, int32(n)); err != nil {
 			return err
 		}
 
@@ -106,9 +107,9 @@ func (c *Codec) writeValue(tagType TagType, v reflect.Value) error {
 
 			var err error
 			if tagType == TagIntArray {
-				err = c.writeInt32(int32(val))
+				err = writeInt32(writer, int32(val))
 			} else if tagType == TagLongArray {
-				err = c.writeInt64(val)
+				err = writeInt64(writer, val)
 			}
 			if err != nil {
 				return err
@@ -118,7 +119,7 @@ func (c *Codec) writeValue(tagType TagType, v reflect.Value) error {
 	return errors.New("unknown tag type")
 }
 
-func (c *Codec) TypeOf(vk reflect.Type) TagType {
+func TypeOf(vk reflect.Type) TagType {
 	switch vk.Kind() {
 	case reflect.Uint8:
 		return TagByte

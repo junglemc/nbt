@@ -1,28 +1,29 @@
 package internal
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"reflect"
 )
 
-func (c *Codec) Unmarshall(v *reflect.Value) (string, error) {
-	tagType, tagName, err := c.readHeader()
+func Unmarshall(reader *bufio.Reader, v *reflect.Value) (string, error) {
+	tagType, tagName, err := readHeader(reader)
 	if err != nil {
 		return "", err
 	}
 
 	e := v.Elem()
 
-	if err = c.readValue(tagType, &e); err != nil {
+	if err = readValue(reader, tagType, &e); err != nil {
 		return "", err
 	}
 
 	return tagName, nil
 }
 
-func (c *Codec) readHeader() (TagType, string, error) {
-	tagType, err := c.readTagType()
+func readHeader(reader *bufio.Reader) (TagType, string, error) {
+	tagType, err := readTagType(reader)
 	if err != nil {
 		return TagNone, "", err
 	}
@@ -31,17 +32,17 @@ func (c *Codec) readHeader() (TagType, string, error) {
 		return TagEnd, "", nil
 	}
 
-	tagName, err := c.readString()
+	tagName, err := readString(reader)
 	if err != nil {
 		return TagNone, "", err
 	}
 	return tagType, tagName, nil
 }
 
-func (c *Codec) readValue(tagType TagType, v *reflect.Value) error {
+func readValue(reader *bufio.Reader, tagType TagType, v *reflect.Value) error {
 	switch tagType {
 	case TagByte:
-		value, err := c.readByte()
+		value, err := readByte(reader)
 		if err != nil {
 			return err
 		}
@@ -57,7 +58,7 @@ func (c *Codec) readValue(tagType TagType, v *reflect.Value) error {
 			return errors.New("cannot parse TagByte as " + kind.String())
 		}
 	case TagShort:
-		value, err := c.readInt16()
+		value, err := readInt16(reader)
 		if err != nil {
 			return err
 		}
@@ -73,7 +74,7 @@ func (c *Codec) readValue(tagType TagType, v *reflect.Value) error {
 			return errors.New("cannot parse TagShort as " + kind.String())
 		}
 	case TagInt:
-		value, err := c.readInt32()
+		value, err := readInt32(reader)
 		if err != nil {
 			return err
 		}
@@ -89,7 +90,7 @@ func (c *Codec) readValue(tagType TagType, v *reflect.Value) error {
 			return errors.New("cannot parse TagInt as " + kind.String())
 		}
 	case TagLong:
-		value, err := c.readInt64()
+		value, err := readInt64(reader)
 		if err != nil {
 			return err
 		}
@@ -105,7 +106,7 @@ func (c *Codec) readValue(tagType TagType, v *reflect.Value) error {
 			return errors.New("cannot parse TagLong as " + kind.String())
 		}
 	case TagFloat:
-		value, err := c.readFloat32()
+		value, err := readFloat32(reader)
 		if err != nil {
 			return err
 		}
@@ -119,7 +120,7 @@ func (c *Codec) readValue(tagType TagType, v *reflect.Value) error {
 			return errors.New("cannot parse TagFloat as " + kind.String())
 		}
 	case TagDouble:
-		value, err := c.readFloat64()
+		value, err := readFloat64(reader)
 		if err != nil {
 			return err
 		}
@@ -133,7 +134,7 @@ func (c *Codec) readValue(tagType TagType, v *reflect.Value) error {
 			return errors.New("cannot parse TagDouble as " + kind.String())
 		}
 	case TagString:
-		value, err := c.readString()
+		value, err := readString(reader)
 		if err != nil {
 			return err
 		}
@@ -147,12 +148,12 @@ func (c *Codec) readValue(tagType TagType, v *reflect.Value) error {
 			return errors.New("cannot parse TagString as " + kind.String())
 		}
 	case TagList:
-		listType, err := c.readTagType()
+		listType, err := readTagType(reader)
 		if err != nil {
 			return err
 		}
 
-		length, err := c.readInt32()
+		length, err := readInt32(reader)
 		if err != nil {
 			return err
 		}
@@ -178,7 +179,7 @@ func (c *Codec) readValue(tagType TagType, v *reflect.Value) error {
 
 		for i := 0; i < int(length); i++ {
 			ind := list.Index(i)
-			err = c.readValue(listType, &ind)
+			err = readValue(reader, listType, &ind)
 			if err != nil {
 				return err
 			}
@@ -210,7 +211,7 @@ func (c *Codec) readValue(tagType TagType, v *reflect.Value) error {
 			}
 
 			for  {
-				cmpTagType, cmpTagName, err := c.readHeader()
+				cmpTagType, cmpTagName, err := readHeader(reader)
 
 				if cmpTagType == TagEnd {
 					return nil
@@ -226,7 +227,7 @@ func (c *Codec) readValue(tagType TagType, v *reflect.Value) error {
 				}
 
 				f := v.Field(index)
-				if err = c.readValue(cmpTagType, &f); err != nil {
+				if err = readValue(reader, cmpTagType, &f); err != nil {
 					return err
 				}
 			}
@@ -240,7 +241,7 @@ func (c *Codec) readValue(tagType TagType, v *reflect.Value) error {
 			}
 
 			for {
-				cmpTagType, cmpTagName, err := c.readHeader()
+				cmpTagType, cmpTagName, err := readHeader(reader)
 
 				if cmpTagType == TagEnd {
 					return nil
@@ -250,14 +251,14 @@ func (c *Codec) readValue(tagType TagType, v *reflect.Value) error {
 					return err
 				}
 				val := reflect.New(v.Type().Elem())
-				if err = c.readValue(cmpTagType, &val); err != nil {
+				if err = readValue(reader, cmpTagType, &val); err != nil {
 					return err
 				}
 				v.SetMapIndex(reflect.ValueOf(cmpTagName), v.Elem())
 			}
 		}
 	case TagByteArray:
-		b, err := c.readByteSlice()
+		b, err := readByteSlice(reader)
 		if err != nil {
 			return err
 		}
@@ -269,7 +270,7 @@ func (c *Codec) readValue(tagType TagType, v *reflect.Value) error {
 			v.Set(reflect.ValueOf(b))
 		}
 	case TagIntArray:
-		length, err := c.readInt32()
+		length, err := readInt32(reader)
 		if err != nil {
 			return err
 		}
@@ -289,7 +290,7 @@ func (c *Codec) readValue(tagType TagType, v *reflect.Value) error {
 
 		b := reflect.MakeSlice(t, int(length), int(length))
 		for i:=0; i<int(length); i++ {
-			val, err := c.readInt32()
+			val, err := readInt32(reader)
 			if err != nil {
 				return err
 			}
@@ -297,7 +298,7 @@ func (c *Codec) readValue(tagType TagType, v *reflect.Value) error {
 		}
 		v.Set(b)
 	case TagLongArray:
-		length, err := c.readInt32()
+		length, err := readInt32(reader)
 		if err != nil {
 			return err
 		}
@@ -317,7 +318,7 @@ func (c *Codec) readValue(tagType TagType, v *reflect.Value) error {
 
 		b := reflect.MakeSlice(t, int(length), int(length))
 		for i:=0; i<int(length); i++ {
-			val, err := c.readInt64()
+			val, err := readInt64(reader)
 			if err != nil {
 				return err
 			}
