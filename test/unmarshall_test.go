@@ -89,9 +89,6 @@ func TestUnmarshall(t *testing.T) {
 				t.Errorf("tags not equal")
 				return
 			}
-
-			log.Println(tagName)
-			log.Println(actualRaw.Elem().Interface())
 		})
 	}
 }
