@@ -1,4 +1,4 @@
-package nbt
+package internal
 
 import (
 	"bufio"
@@ -25,21 +25,21 @@ const (
 	TagNone = 0xFF
 )
 
-type TagCodec struct {
+type Codec struct {
 	Reader *bufio.Reader
 	Writer *bufio.Writer
 }
 
-func (c *TagCodec) readTagType() (t TagType, err error) {
+func (c *Codec) readTagType() (t TagType, err error) {
 	tb, err := c.Reader.ReadByte()
 	return TagType(tb), err
 }
 
-func (c *TagCodec) readByte() (v byte, err error) {
+func (c *Codec) readByte() (v byte, err error) {
 	return c.Reader.ReadByte()
 }
 
-func (c *TagCodec) readUInt16() (uint16, error) {
+func (c *Codec) readUInt16() (uint16, error) {
 	b := make([]byte, 2)
 	n, err := c.Reader.Read(b)
 	if err != nil {
@@ -54,7 +54,7 @@ func (c *TagCodec) readUInt16() (uint16, error) {
 	return uint16(b[0])<<8 | uint16(b[1]), nil
 }
 
-func (c *TagCodec) readInt16() (int16, error) {
+func (c *Codec) readInt16() (int16, error) {
 	uv, err := c.readUInt16()
 	if err != nil {
 		return 0, err
@@ -62,7 +62,7 @@ func (c *TagCodec) readInt16() (int16, error) {
 	return int16(uv), nil
 }
 
-func (c *TagCodec) readUInt32() (uint32, error) {
+func (c *Codec) readUInt32() (uint32, error) {
 	b := make([]byte, 4)
 	n, err := c.Reader.Read(b)
 	if err != nil {
@@ -77,7 +77,7 @@ func (c *TagCodec) readUInt32() (uint32, error) {
 	return uint32(b[0])<<24 | uint32(b[1])<<16 | uint32(b[2])<<8 | uint32(b[3]), nil
 }
 
-func (c *TagCodec) readInt32() (int32, error) {
+func (c *Codec) readInt32() (int32, error) {
 	v, err := c.readUInt32()
 	if err != nil {
 		return 0, err
@@ -85,7 +85,7 @@ func (c *TagCodec) readInt32() (int32, error) {
 	return int32(v), nil
 }
 
-func (c *TagCodec) readUInt64() (uint64, error) {
+func (c *Codec) readUInt64() (uint64, error) {
 	b := make([]byte, 8)
 	n, err := c.Reader.Read(b)
 	if err != nil {
@@ -100,7 +100,7 @@ func (c *TagCodec) readUInt64() (uint64, error) {
 	return uint64(b[0])<<56 | uint64(b[1])<<48 | uint64(b[2])<<40 | uint64(b[3])<<32 | uint64(b[4])<<24 | uint64(b[5])<<16 | uint64(b[6])<<8 | uint64(b[7]), nil
 }
 
-func (c *TagCodec) readInt64() (int64, error) {
+func (c *Codec) readInt64() (int64, error) {
 	v, err := c.readUInt64()
 	if err != nil {
 		return 0, err
@@ -108,7 +108,7 @@ func (c *TagCodec) readInt64() (int64, error) {
 	return int64(v), nil
 }
 
-func (c *TagCodec) readFloat32() (float32, error) {
+func (c *Codec) readFloat32() (float32, error) {
 	v, err := c.readUInt32()
 	if err != nil {
 		return 0, err
@@ -116,7 +116,7 @@ func (c *TagCodec) readFloat32() (float32, error) {
 	return math.Float32frombits(v), nil
 }
 
-func (c *TagCodec) readFloat64() (float64, error) {
+func (c *Codec) readFloat64() (float64, error) {
 	v, err := c.readUInt64()
 	if err != nil {
 		return 0, err
@@ -124,7 +124,7 @@ func (c *TagCodec) readFloat64() (float64, error) {
 	return math.Float64frombits(v), nil
 }
 
-func (c *TagCodec) readByteSlice() ([]byte, error) {
+func (c *Codec) readByteSlice() ([]byte, error) {
 	length, err := c.readInt32()
 	if err != nil {
 		return nil, err
@@ -141,7 +141,7 @@ func (c *TagCodec) readByteSlice() ([]byte, error) {
 }
 
 // TODO: Modified UTF-8 format
-func (c *TagCodec) readString() (string, error) {
+func (c *Codec) readString() (string, error) {
 	length, err := c.readUInt16()
 	if err != nil {
 		return "", err
@@ -164,7 +164,7 @@ func (c *TagCodec) readString() (string, error) {
 	return string(v), nil
 }
 
-func (c *TagCodec) writeTagType(t TagType) error {
+func (c *Codec) writeTagType(t TagType) error {
 	err := c.writeByte(byte(t))
 	if err != nil {
 		return err
@@ -172,7 +172,7 @@ func (c *TagCodec) writeTagType(t TagType) error {
 	return nil
 }
 
-func (c *TagCodec) writeByte(v byte) error {
+func (c *Codec) writeByte(v byte) error {
 	err := c.Writer.WriteByte(v)
 	if err != nil {
 		return err
@@ -184,7 +184,7 @@ func (c *TagCodec) writeByte(v byte) error {
 	return nil
 }
 
-func (c *TagCodec) writeUInt16(v uint16) error {
+func (c *Codec) writeUInt16(v uint16) error {
 	b := []byte{byte(v >> 8), byte(v)}
 	_, err := c.Writer.Write(b)
 	if err != nil {
@@ -198,11 +198,11 @@ func (c *TagCodec) writeUInt16(v uint16) error {
 	return nil
 }
 
-func (c *TagCodec) writeInt16(v int16) error {
+func (c *Codec) writeInt16(v int16) error {
 	return c.writeUInt16(uint16(v))
 }
 
-func (c *TagCodec) writeUInt32(v uint32) error {
+func (c *Codec) writeUInt32(v uint32) error {
 	b := []byte{byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
 	_, err := c.Writer.Write(b)
 	if err != nil {
@@ -216,11 +216,11 @@ func (c *TagCodec) writeUInt32(v uint32) error {
 	return nil
 }
 
-func (c *TagCodec) writeInt32(v int32) error {
+func (c *Codec) writeInt32(v int32) error {
 	return c.writeUInt32(uint32(v))
 }
 
-func (c *TagCodec) writeUInt64(v uint64) error {
+func (c *Codec) writeUInt64(v uint64) error {
 	b := []byte{byte(v >> 56), byte(v >> 48), byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
 	_, err := c.Writer.Write(b)
 	if err != nil {
@@ -234,19 +234,19 @@ func (c *TagCodec) writeUInt64(v uint64) error {
 	return nil
 }
 
-func (c *TagCodec) writeInt64(v int64) error {
+func (c *Codec) writeInt64(v int64) error {
 	return c.writeUInt64(uint64(v))
 }
 
-func (c *TagCodec) writeFloat32(v float32) error {
+func (c *Codec) writeFloat32(v float32) error {
 	return c.writeUInt32(math.Float32bits(v))
 }
 
-func (c *TagCodec) writeFloat64(v float64) error {
+func (c *Codec) writeFloat64(v float64) error {
 	return c.writeUInt64(math.Float64bits(v))
 }
 
-func (c *TagCodec) writeByteSlice(v []byte) error {
+func (c *Codec) writeByteSlice(v []byte) error {
 	err := c.writeInt32(int32(len(v)))
 	if err != nil {
 		return err
@@ -263,7 +263,7 @@ func (c *TagCodec) writeByteSlice(v []byte) error {
 }
 
 // TODO: Modified UTF-8 format
-func (c *TagCodec) writeString(v string) error {
+func (c *Codec) writeString(v string) error {
 	err := c.writeUInt16(uint16(len(v)))
 	if err != nil {
 		return err

@@ -1,17 +1,11 @@
-package nbt
+package internal
 
 import (
 	"errors"
 	"reflect"
 )
 
-func (c *TagCodec) Marshal(tagName string, v interface{}) error {
-	val := reflect.ValueOf(v)
-	tagType := c.typeOf(val.Type())
-	return c.marshall(tagName, tagType, val)
-}
-
-func (c *TagCodec) marshall(tagName string, tagType TagType, v reflect.Value) (err error) {
+func (c *Codec) Marshall(tagName string, tagType TagType, v reflect.Value) (err error) {
 	if err = c.writeHeader(tagName, tagType); err != nil {
 		return err
 	}
@@ -21,7 +15,7 @@ func (c *TagCodec) marshall(tagName string, tagType TagType, v reflect.Value) (e
 	return nil
 }
 
-func (c *TagCodec) writeHeader(tagName string, tagType TagType) (err error) {
+func (c *Codec) writeHeader(tagName string, tagType TagType) (err error) {
 	if err = c.writeTagType(tagType); err != nil {
 		return err
 	}
@@ -32,7 +26,7 @@ func (c *TagCodec) writeHeader(tagName string, tagType TagType) (err error) {
 	return nil
 }
 
-func (c *TagCodec) writeValue(tagType TagType, v reflect.Value) error {
+func (c *Codec) writeValue(tagType TagType, v reflect.Value) error {
 	switch tagType {
 	case TagByte:
 		return c.writeByte(byte(v.Uint()))
@@ -49,7 +43,7 @@ func (c *TagCodec) writeValue(tagType TagType, v reflect.Value) error {
 	case TagString:
 		return c.writeString(v.String())
 	case TagList:
-		nestedTagType := c.typeOf(v.Type().Elem())
+		nestedTagType := c.TypeOf(v.Type().Elem())
 		if v.Len() <= 0 {
 			nestedTagType = TagEnd // Mimic notchian behavior
 		}
@@ -88,12 +82,12 @@ func (c *TagCodec) writeValue(tagType TagType, v reflect.Value) error {
 				nestedTagName = f.Name
 			}
 
-			nestedTagType := c.typeOf(f.Type)
+			nestedTagType := c.TypeOf(f.Type)
 			if f.Tag.Get("nbt_type") == "list" {
 				nestedTagType = TagList
 			}
 
-			err := c.marshall(nestedTagName, nestedTagType, v.Field(i))
+			err := c.Marshall(nestedTagName, nestedTagType, v.Field(i))
 			if err != nil {
 				return err
 			}
@@ -124,7 +118,7 @@ func (c *TagCodec) writeValue(tagType TagType, v reflect.Value) error {
 	return errors.New("unknown tag type")
 }
 
-func (c *TagCodec) typeOf(vk reflect.Type) TagType {
+func (c *Codec) TypeOf(vk reflect.Type) TagType {
 	switch vk.Kind() {
 	case reflect.Uint8:
 		return TagByte
