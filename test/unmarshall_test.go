@@ -4,39 +4,41 @@ import (
 	"bufio"
 	"bytes"
 	"github.com/junglemc/nbt"
-	"os"
+	"log"
+	"reflect"
 	"testing"
 )
 
-func TestMarshal(t *testing.T) {
+func TestUnmarshall(t *testing.T) {
 	tests := []struct {
-		name    string
-		tagName string
-		tag     interface{}
-		want    []byte
+		name string
+		tagBytes []byte
+		wantTagName string
+		want interface{}
 		wantErr bool
 	}{
 		{
-			name:    "unnamed root compound tag",
-			tagName: "",
-			tag: UnnamedRootCompound{
+			name: "unnamed root compound tag",
+			tagBytes: UnnamedRootCompoundBytes,
+			wantTagName: "",
+			want: UnnamedRootCompound{
 				ByteTag:   0xFF,
 				StringTag: "hello, world",
 			},
-			want:    UnnamedRootCompoundBytes,
 			wantErr: false,
 		},
 		{
-			name:    "bananrama",
-			tagName: "hello world",
-			tag:     BananramaStruct,
-			want:    BananramaBytes,
+			name: "bananrama",
+			tagBytes: BananramaBytes,
+			wantTagName: "",
+			want: BananramaStruct,
 			wantErr: false,
 		},
 		{
-			name:    "bigtest",
-			tagName: "Level",
-			tag: BigTest{
+			name: "bigtest",
+			tagBytes: BigTestBytes,
+			wantTagName: "Level",
+			want: BigTest{
 				LongTest:   9223372036854775807,
 				ShortTest:  32767,
 				StringTest: "HELLO WORLD THIS IS A TEST STRING \xc3\x85\xc3\x84\xc3\x96!",
@@ -67,30 +69,29 @@ func TestMarshal(t *testing.T) {
 				ByteArrayTest: BigTestByteArray(),
 				DoubleTest:    0.49312871321823148,
 			},
-			want:    BigTestBytes,
 			wantErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			buf := new(bytes.Buffer)
-			err := nbt.Marshal(bufio.NewWriter(buf), tt.tagName, tt.tag)
+			reader := bufio.NewReader(bytes.NewReader(tt.tagBytes))
+
+			actualRaw := reflect.New(reflect.TypeOf(tt.want))
+
+			tagName, err := nbt.Unmarshall(reader, actualRaw.Interface())
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Marshall() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Unmarshall() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
-			b := buf.Bytes()
-
-			f, _ := os.Create("/home/ella/bigtest_go.nbt")
-			w := bufio.NewWriter(f)
-			_, _ = w.Write(b)
-			_ = w.Flush()
-
-			if !bytes.Equal(b, tt.want) {
-				t.Errorf("got:\n[% 2x]\nwant:\n[% 2x]", b, tt.want)
+			if !reflect.DeepEqual(tt.want, actualRaw.Elem().Interface()) {
+				t.Errorf("tags not equal")
+				return
 			}
+
+			log.Println(tagName)
+			log.Println(actualRaw.Elem().Interface())
 		})
 	}
 }
