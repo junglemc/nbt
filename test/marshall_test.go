@@ -5,6 +5,7 @@ import (
     "bytes"
     "github.com/junglemc/nbt"
     "os"
+    "path/filepath"
     "testing"
 )
 
@@ -83,7 +84,8 @@ func TestMarshal(t *testing.T) {
 
             b := buf.Bytes()
 
-            f, _ := os.Create("/home/ella/bigtest_go.nbt")
+            path, err := os.MkdirTemp("", "nbt")
+            f, _ := os.Create(filepath.Join(path, "bigtest_go.nbt"))
             w := bufio.NewWriter(f)
             _, _ = w.Write(b)
             _ = w.Flush()

@@ -78,7 +78,7 @@ func TestUnmarshall(t *testing.T) {
 
             actualRaw := reflect.New(reflect.TypeOf(tt.want))
 
-            tagName, err := nbt.Unmarshall(reader, actualRaw.Interface())
+            _, err := nbt.Unmarshall(reader, actualRaw.Interface())
             if (err != nil) != tt.wantErr {
                 t.Errorf("Unmarshall() error = %v, wantErr %v", err, tt.wantErr)
                 return
