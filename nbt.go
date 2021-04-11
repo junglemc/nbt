@@ -7,7 +7,7 @@ import (
     "reflect"
 )
 
-func Marshal(writer *bufio.Writer, tagName string, v interface{}) error {
+func Marshall(writer *bufio.Writer, tagName string, v interface{}) error {
     val := reflect.ValueOf(v)
     tagType := internal.TypeOf(val.Type())
     return internal.Marshall(writer, tagName, tagType, val)
