@@ -1,14 +1,52 @@
-package test
+package nbt
 
 import (
     "bufio"
     "bytes"
-    "github.com/junglemc/nbt"
+    "github.com/junglemc/nbt/test"
     "reflect"
     "testing"
 )
 
-func TestUnmarshall(t *testing.T) {
+func TestUnmarshallCompoundMap(t *testing.T) {
+    tests := []struct {
+        name          string
+        input         []byte
+        expected      map[string]interface{}
+        expectedError bool
+    }{
+        {
+            name:  "unnamed root comound tag",
+            input: test.UnnamedRootCompoundBytes,
+            expected: map[string]interface{}{
+                "ByteTag":   byte(0xFF),
+                "StringTag": "hello, world",
+            },
+        },
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            reader := bufio.NewReader(bytes.NewReader(tt.input))
+
+            actualRaw := make(map[string]interface{})
+            actualRawValueOf := reflect.ValueOf(actualRaw)
+
+            _, err := Unmarshall(reader, actualRawValueOf)
+            if (err != nil) != tt.expectedError {
+                t.Errorf("Unmarshall() error = %v, wantErr %v", err, tt.expectedError)
+                return
+            }
+
+            if !reflect.DeepEqual(tt.expected, actualRaw) {
+                t.Errorf("tags not equal")
+                return
+            }
+        })
+    }
+}
+
+func TestUnmarshallCompoundStruct(t *testing.T) {
     tests := []struct {
         name        string
         tagBytes    []byte
@@ -18,9 +56,9 @@ func TestUnmarshall(t *testing.T) {
     }{
         {
             name:        "unnamed root compound tag",
-            tagBytes:    UnnamedRootCompoundBytes,
+            tagBytes:    test.UnnamedRootCompoundBytes,
             wantTagName: "",
-            want: UnnamedRootCompound{
+            want: test.UnnamedRootCompound{
                 ByteTag:   0xFF,
                 StringTag: "hello, world",
             },
@@ -28,33 +66,33 @@ func TestUnmarshall(t *testing.T) {
         },
         {
             name:        "bananrama",
-            tagBytes:    BananramaBytes,
+            tagBytes:    test.BananramaBytes,
             wantTagName: "",
-            want:        BananramaStruct,
+            want:        test.BananramaStruct,
             wantErr:     false,
         },
         {
             name:        "bigtest",
-            tagBytes:    BigTestBytes,
+            tagBytes:    test.BigTestBytes,
             wantTagName: "Level",
-            want: BigTest{
+            want: test.BigTest{
                 LongTest:   9223372036854775807,
                 ShortTest:  32767,
                 StringTest: "HELLO WORLD THIS IS A TEST STRING \xc3\x85\xc3\x84\xc3\x96!",
                 FloatTest:  0.49823147058486938,
                 IntTest:    2147483647,
-                NCT: BigTestNCT{
-                    Egg: BigTestNameAndFloat32{
+                NCT: test.BigTestNCT{
+                    Egg: test.BigTestNameAndFloat32{
                         Name:  "Eggbert",
                         Value: 0.5,
                     },
-                    Ham: BigTestNameAndFloat32{
+                    Ham: test.BigTestNameAndFloat32{
                         Name:  "Hampus",
                         Value: 0.75,
                     },
                 },
                 ListTest: []int64{11, 12, 13, 14, 15},
-                ListTest2: [2]BigTestCompound{
+                ListTest2: [2]test.BigTestCompound{
                     {
                         Name:      "Compound tag #0",
                         CreatedOn: 1264099775885,
@@ -65,7 +103,7 @@ func TestUnmarshall(t *testing.T) {
                     },
                 },
                 ByteTest:      127,
-                ByteArrayTest: BigTestByteArray(),
+                ByteArrayTest: test.BigTestByteArray(),
                 DoubleTest:    0.49312871321823148,
             },
             wantErr: false,
@@ -78,7 +116,7 @@ func TestUnmarshall(t *testing.T) {
 
             actualRaw := reflect.New(reflect.TypeOf(tt.want))
 
-            _, err := nbt.Unmarshall(reader, actualRaw.Interface())
+            _, err := Unmarshall(reader, actualRaw)
             if (err != nil) != tt.wantErr {
                 t.Errorf("Unmarshall() error = %v, wantErr %v", err, tt.wantErr)
                 return

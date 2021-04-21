@@ -1,9 +1,10 @@
-package internal
+package nbt
 
 import (
     "bufio"
     "errors"
     "math"
+    "reflect"
 )
 
 type TagType byte
@@ -257,6 +258,40 @@ func writeByteSlice(writer *bufio.Writer, v []byte) error {
     return nil
 }
 
+func writeInt32Slice(writer *bufio.Writer, v []int32) (err error) {
+    n := len(v)
+
+    err = writeInt32(writer, int32(n))
+    if err != nil {
+        return
+    }
+
+    for i := 0; i < n; i++ {
+        err = writeInt32(writer, v[i])
+        if err != nil {
+            return
+        }
+    }
+    return
+}
+
+func writeInt64Slice(writer *bufio.Writer, v []int64) (err error) {
+    n := len(v)
+
+    err = writeInt32(writer, int32(n))
+    if err != nil {
+        return
+    }
+
+    for i := 0; i < n; i++ {
+        err = writeInt64(writer, v[i])
+        if err != nil {
+            return
+        }
+    }
+    return
+}
+
 // TODO: Modified UTF-8 format
 func writeString(writer *bufio.Writer, v string) error {
     err := writeUInt16(writer, uint16(len(v)))
@@ -272,4 +307,88 @@ func writeString(writer *bufio.Writer, v string) error {
         return err
     }
     return nil
+}
+
+func writeList(writer *bufio.Writer, v reflect.Value) (err error) {
+    nestedTagType := TypeOf(v.Type().Elem())
+
+    n := v.Len()
+    if n <= 0 {
+        nestedTagType = TagEnd // Mimic notchian behavior
+    }
+
+    err = writeTagType(writer, nestedTagType)
+    if err != nil {
+        return
+    }
+
+    if err = writeInt32(writer, int32(n)); err != nil {
+        return
+    }
+
+    for i := 0; i < n; i++ {
+        err = writeValue(writer, nestedTagType, v.Index(i).Interface())
+        if err != nil {
+            return
+        }
+    }
+    return
+}
+
+func writeCompound(writer *bufio.Writer, v reflect.Value) (err error) {
+    if v.Type().Kind() == reflect.Map {
+        mapRange := v.MapRange()
+        for mapRange.Next() {
+            nestedTagType := TypeOf(reflect.TypeOf(mapRange.Value().Interface()))
+
+            err = writeTagType(writer, nestedTagType)
+            if err != nil {
+                return
+            }
+
+            err = writeString(writer, mapRange.Key().String())
+            if err != nil {
+                return
+            }
+
+            err = writeValue(writer, nestedTagType, mapRange.Value().Interface())
+            if err != nil {
+                return
+            }
+        }
+    } else {
+        numFields := v.NumField()
+
+        for i := 0; i < numFields; i++ {
+            f := v.Type().Field(i)
+
+            nestedTagName := f.Tag.Get("nbt")
+
+            // Take the field name if unspecified
+            if nestedTagName == "" {
+                nestedTagName = f.Name
+            }
+
+            nestedTagType := TypeOf(f.Type)
+            if f.Tag.Get("nbt_type") == "list" {
+                nestedTagType = TagList
+            }
+
+            err = writeTagType(writer, nestedTagType)
+            if err != nil {
+                return
+            }
+
+            err = writeString(writer, nestedTagName)
+            if err != nil {
+                return
+            }
+
+            err = writeValue(writer, nestedTagType, v.Field(i).Interface())
+            if err != nil {
+                return
+            }
+        }
+    }
+    return writeTagType(writer, TagEnd)
 }
