@@ -11,7 +11,7 @@ func Unmarshal(reader *bufio.Reader, value reflect.Value) (tagName string, err e
         return
     }
 
-    if tagType == TagEnd {
+    if tagType == tagEnd {
         return
     }
 
@@ -27,36 +27,36 @@ func Unmarshal(reader *bufio.Reader, value reflect.Value) (tagName string, err e
     return
 }
 
-func readValue(reader *bufio.Reader, tagType TagType, v reflect.Value) error {
+func readValue(reader *bufio.Reader, tagType namedTagType, v reflect.Value) error {
     switch tagType {
-    case TagByte:
+    case tagByte:
         return readTagByte(reader, v)
-    case TagShort:
+    case tagShort:
         return readTagShort(reader, v)
-    case TagInt:
+    case tagInt:
         return readTagInt(reader, v)
-    case TagLong:
+    case tagLong:
         return readTagLong(reader, v)
-    case TagFloat:
+    case tagFloat:
         return readTagFloat(reader, v)
-    case TagDouble:
+    case tagDouble:
         return readTagDouble(reader, v)
-    case TagString:
+    case tagString:
         return readTagString(reader, v)
-    case TagList:
+    case tagList:
         return readTagList(reader, v)
-    case TagCompound:
+    case tagCompound:
         switch v.Kind() {
         case reflect.Struct:
             return readTagCompoundStruct(reader, v)
         case reflect.Map:
             return readTagCompoundMap(reader, v)
         }
-    case TagByteArray:
+    case tagByteArray:
         return readTagByteArray(reader, v)
-    case TagIntArray:
+    case tagIntArray:
         return readTagIntArray(reader, v)
-    case TagLongArray:
+    case tagLongArray:
         return readTagLongArray(reader, v)
     }
     return nil

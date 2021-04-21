@@ -21,7 +21,7 @@ func readTagByte(reader *bufio.Reader, v reflect.Value) (err error) {
     case reflect.Interface:
         v.Set(reflect.ValueOf(value))
     default:
-        return errors.New("cannot parse TagByte as " + kind.String())
+        return errors.New("cannot parse tagByte as " + kind.String())
     }
     return
 }
@@ -40,7 +40,7 @@ func readTagShort(reader *bufio.Reader, v reflect.Value) (err error) {
     case reflect.Interface:
         v.Set(reflect.ValueOf(value))
     default:
-        return errors.New("cannot parse TagShort as " + kind.String())
+        return errors.New("cannot parse tagShort as " + kind.String())
     }
     return
 }
@@ -59,7 +59,7 @@ func readTagInt(reader *bufio.Reader, v reflect.Value) (err error) {
     case reflect.Interface:
         v.Set(reflect.ValueOf(value))
     default:
-        return errors.New("cannot parse TagInt as " + kind.String())
+        return errors.New("cannot parse tagInt as " + kind.String())
     }
     return
 }
@@ -78,7 +78,7 @@ func readTagLong(reader *bufio.Reader, v reflect.Value) (err error) {
     case reflect.Interface:
         v.Set(reflect.ValueOf(value))
     default:
-        return errors.New("cannot parse TagLong as " + kind.String())
+        return errors.New("cannot parse tagLong as " + kind.String())
     }
     return
 }
@@ -95,7 +95,7 @@ func readTagFloat(reader *bufio.Reader, v reflect.Value) (err error) {
     case reflect.Interface:
         v.Set(reflect.ValueOf(value))
     default:
-        return errors.New("cannot parse TagFloat as " + kind.String())
+        return errors.New("cannot parse tagFloat as " + kind.String())
     }
     return
 }
@@ -112,7 +112,7 @@ func readTagDouble(reader *bufio.Reader, v reflect.Value) (err error) {
     case reflect.Interface:
         v.Set(reflect.ValueOf(value))
     default:
-        return errors.New("cannot parse TagDouble as " + kind.String())
+        return errors.New("cannot parse tagDouble as " + kind.String())
     }
     return
 }
@@ -131,7 +131,7 @@ func readTagString(reader *bufio.Reader, v reflect.Value) (err error) {
         v.Set(reflect.ValueOf(value))
         break
     default:
-        return errors.New("cannot parse TagString as " + kind.String())
+        return errors.New("cannot parse tagString as " + kind.String())
     }
     return
 }
@@ -160,7 +160,7 @@ func readTagList(reader *bufio.Reader, v reflect.Value) (err error) {
         break
     case reflect.Array:
         if arrayLength := v.Len(); arrayLength < int(length) {
-            return fmt.Errorf("size mismatch in TagList: want=%d, available=%d", arrayLength, length)
+            return fmt.Errorf("size mismatch in tagList: want=%d, available=%d", arrayLength, length)
         }
     }
 
@@ -175,7 +175,7 @@ func readTagList(reader *bufio.Reader, v reflect.Value) (err error) {
 
 func readTagCompoundStruct(reader *bufio.Reader, v reflect.Value) (err error) {
     for {
-        var cmpTagType TagType
+        var cmpTagType namedTagType
         var cmpTagName string
 
         cmpTagType, err = readTagType(reader)
@@ -183,7 +183,7 @@ func readTagCompoundStruct(reader *bufio.Reader, v reflect.Value) (err error) {
             return
         }
 
-        if cmpTagType == TagEnd {
+        if cmpTagType == tagEnd {
             break
         }
 
@@ -225,7 +225,7 @@ func readTagCompoundMap(reader *bufio.Reader, v reflect.Value) (err error) {
     }
 
     for {
-        var cmpTagType TagType
+        var cmpTagType namedTagType
         var cmpTagName string
 
         cmpTagType, err = readTagType(reader)
@@ -233,7 +233,7 @@ func readTagCompoundMap(reader *bufio.Reader, v reflect.Value) (err error) {
             return
         }
 
-        if cmpTagType == TagEnd {
+        if cmpTagType == tagEnd {
             break
         }
 
@@ -249,40 +249,40 @@ func readTagCompoundMap(reader *bufio.Reader, v reflect.Value) (err error) {
         var val interface{}
 
         switch cmpTagType {
-        case TagByte:
+        case tagByte:
             val = byte(0)
             break
-        case TagShort:
+        case tagShort:
             val = int16(0)
             break
-        case TagInt:
+        case tagInt:
             val = int32(0)
             break
-        case TagLong:
+        case tagLong:
             val = int64(0)
             break
-        case TagFloat:
+        case tagFloat:
             val = float32(0)
             break
-        case TagDouble:
+        case tagDouble:
             val = float64(0)
             break
-        case TagString:
+        case tagString:
             val = ""
             break
-        case TagList:
+        case tagList:
             val = make([]interface{}, 0)
             break
-        case TagCompound:
+        case tagCompound:
             val = make(map[string]interface{})
             break
-        case TagByteArray:
+        case tagByteArray:
             val = make([]byte, 0)
             break
-        case TagIntArray:
+        case tagIntArray:
             val = make([]int32, 0)
             break
-        case TagLongArray:
+        case tagLongArray:
             val = make([]int64, 0)
             break
         }

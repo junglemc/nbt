@@ -7,28 +7,28 @@ import (
     "reflect"
 )
 
-type TagType byte
+type namedTagType byte
 
 const (
-    TagEnd TagType = iota
-    TagByte
-    TagShort
-    TagInt
-    TagLong
-    TagFloat
-    TagDouble
-    TagByteArray
-    TagString
-    TagList
-    TagCompound
-    TagIntArray
-    TagLongArray
-    TagNone = 0xFF
+    tagEnd namedTagType = iota
+    tagByte
+    tagShort
+    tagInt
+    tagLong
+    tagFloat
+    tagDouble
+    tagByteArray
+    tagString
+    tagList
+    tagCompound
+    tagIntArray
+    tagLongArray
+    tagNone = 0xFF
 )
 
-func readTagType(reader *bufio.Reader) (t TagType, err error) {
+func readTagType(reader *bufio.Reader) (t namedTagType, err error) {
     tb, err := readByte(reader)
-    return TagType(tb), err
+    return namedTagType(tb), err
 }
 
 func readByte(reader *bufio.Reader) (v byte, err error) {
@@ -160,7 +160,7 @@ func readString(reader *bufio.Reader) (string, error) {
     return string(v), nil
 }
 
-func writeTagType(writer *bufio.Writer, t TagType) error {
+func writeTagType(writer *bufio.Writer, t namedTagType) error {
     err := writeByte(writer, byte(t))
     if err != nil {
         return err
@@ -314,7 +314,7 @@ func writeList(writer *bufio.Writer, v reflect.Value) (err error) {
 
     n := v.Len()
     if n <= 0 {
-        nestedTagType = TagEnd // Mimic notchian behavior
+        nestedTagType = tagEnd // Mimic notchian behavior
     }
 
     err = writeTagType(writer, nestedTagType)
@@ -371,7 +371,7 @@ func writeCompound(writer *bufio.Writer, v reflect.Value) (err error) {
 
             nestedTagType := typeOf(f.Type)
             if f.Tag.Get("nbt_type") == "list" {
-                nestedTagType = TagList
+                nestedTagType = tagList
             }
 
             err = writeTagType(writer, nestedTagType)
@@ -390,5 +390,5 @@ func writeCompound(writer *bufio.Writer, v reflect.Value) (err error) {
             }
         }
     }
-    return writeTagType(writer, TagEnd)
+    return writeTagType(writer, tagEnd)
 }

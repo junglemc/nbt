@@ -25,66 +25,66 @@ func Marshal(writer *bufio.Writer, tagName string, value interface{}) (err error
     return
 }
 
-func writeValue(writer *bufio.Writer, tagType TagType, value interface{}) error {
+func writeValue(writer *bufio.Writer, tagType namedTagType, value interface{}) error {
     switch tagType {
-    case TagByte:
+    case tagByte:
         return writeByte(writer, value.(byte))
-    case TagShort:
+    case tagShort:
         return writeInt16(writer, value.(int16))
-    case TagInt:
+    case tagInt:
         return writeInt32(writer, value.(int32))
-    case TagLong:
+    case tagLong:
         return writeInt64(writer, value.(int64))
-    case TagFloat:
+    case tagFloat:
         return writeFloat32(writer, value.(float32))
-    case TagDouble:
+    case tagDouble:
         return writeFloat64(writer, value.(float64))
-    case TagString:
+    case tagString:
         return writeString(writer, value.(string))
-    case TagList:
+    case tagList:
         return writeList(writer, reflect.ValueOf(value))
-    case TagCompound:
+    case tagCompound:
         return writeCompound(writer, reflect.ValueOf(value))
-    case TagByteArray:
+    case tagByteArray:
         return writeByteSlice(writer, value.([]byte))
-    case TagIntArray:
+    case tagIntArray:
         return writeInt32Slice(writer, value.([]int32))
-    case TagLongArray:
+    case tagLongArray:
         return writeInt64Slice(writer, value.([]int64))
     }
     return nil
 }
 
-func typeOf(t reflect.Type) TagType {
+func typeOf(t reflect.Type) namedTagType {
     switch t.Kind() {
     case reflect.Uint8:
-        return TagByte
+        return tagByte
     case reflect.Int16, reflect.Uint16:
-        return TagShort
+        return tagShort
     case reflect.Int32, reflect.Uint32:
-        return TagInt
+        return tagInt
     case reflect.Float32:
-        return TagFloat
+        return tagFloat
     case reflect.Int64, reflect.Uint64:
-        return TagLong
+        return tagLong
     case reflect.Float64:
-        return TagDouble
+        return tagDouble
     case reflect.String:
-        return TagString
+        return tagString
     case reflect.Struct, reflect.Interface, reflect.Map:
-        return TagCompound
+        return tagCompound
     case reflect.Array, reflect.Slice:
         switch t.Elem().Kind() {
         case reflect.Uint8:
-            return TagByteArray
+            return tagByteArray
         case reflect.Int32:
-            return TagIntArray
+            return tagIntArray
         case reflect.Int64:
-            return TagLongArray
+            return tagLongArray
         default:
-            return TagList
+            return tagList
         }
     default:
-        return TagNone
+        return tagNone
     }
 }
