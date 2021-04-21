@@ -5,7 +5,7 @@ import (
     "reflect"
 )
 
-func Unmarshall(reader *bufio.Reader, value reflect.Value) (tagName string, err error) {
+func Unmarshal(reader *bufio.Reader, value reflect.Value) (tagName string, err error) {
     tagType, err := readTagType(reader)
     if err != nil {
         return
@@ -27,11 +27,7 @@ func Unmarshall(reader *bufio.Reader, value reflect.Value) (tagName string, err 
     return
 }
 
-func readValue(reader *bufio.Reader, tagType TagType, vptr reflect.Value) error {
-    v := vptr
-    if v.Type().Kind() == reflect.Ptr {
-        v = v.Elem()
-    }
+func readValue(reader *bufio.Reader, tagType TagType, v reflect.Value) error {
     switch tagType {
     case TagByte:
         return readTagByte(reader, v)

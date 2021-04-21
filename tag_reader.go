@@ -126,8 +126,10 @@ func readTagString(reader *bufio.Reader, v reflect.Value) (err error) {
     switch kind := v.Kind(); kind {
     case reflect.String:
         v.SetString(value)
+        break
     case reflect.Interface:
         v.Set(reflect.ValueOf(value))
+        break
     default:
         return errors.New("cannot parse TagString as " + kind.String())
     }
@@ -163,8 +165,7 @@ func readTagList(reader *bufio.Reader, v reflect.Value) (err error) {
     }
 
     for i := 0; i < int(length); i++ {
-        valAt := v.Index(i)
-        err = readValue(reader, listType, valAt)
+        err = readValue(reader, listType, v.Index(i))
         if err != nil {
             return
         }
@@ -191,7 +192,7 @@ func readTagCompoundStruct(reader *bufio.Reader, v reflect.Value) (err error) {
             return
         }
 
-        for i := 0; i < v.Type().NumField(); i++ {
+        for i := 0; i < v.NumField(); i++ {
             f := v.Type().Field(i)
             tagName := f.Tag.Get("nbt")
             if tagName == "-" {
@@ -244,12 +245,53 @@ func readTagCompoundMap(reader *bufio.Reader, v reflect.Value) (err error) {
         if err != nil {
             return err
         }
-        val := reflect.New(v.Type().Elem())
-        err = readValue(reader, cmpTagType, val)
+
+        var val interface{}
+
+        switch cmpTagType {
+        case TagByte:
+            val = byte(0)
+            break
+        case TagShort:
+            val = int16(0)
+            break
+        case TagInt:
+            val = int32(0)
+            break
+        case TagLong:
+            val = int64(0)
+            break
+        case TagFloat:
+            val = float32(0)
+            break
+        case TagDouble:
+            val = float64(0)
+            break
+        case TagString:
+            val = ""
+            break
+        case TagList:
+            val = make([]interface{}, 0)
+            break
+        case TagCompound:
+            val = make(map[string]interface{})
+            break
+        case TagByteArray:
+            val = make([]byte, 0)
+            break
+        case TagIntArray:
+            val = make([]int32, 0)
+            break
+        case TagLongArray:
+            val = make([]int64, 0)
+            break
+        }
+
+        err = readValue(reader, cmpTagType, reflect.ValueOf(&val).Elem())
         if err != nil {
             return err
         }
-        v.SetMapIndex(reflect.ValueOf(cmpTagName), val.Elem())
+        v.SetMapIndex(reflect.ValueOf(cmpTagName), reflect.ValueOf(val))
     }
     return
 }

@@ -4,84 +4,78 @@ import (
     "bufio"
     "bytes"
     "github.com/junglemc/nbt/test"
-    "os"
-    "path/filepath"
+    "reflect"
     "testing"
 )
 
-func TestMarshalCompoundMap(t *testing.T) {
+func TestUnmarshalCompoundMap(t *testing.T) {
     tests := []struct {
         name          string
-        inputTagName  string
-        input         map[string]interface{}
-        expected      []byte
+        input         []byte
+        expected      map[string]interface{}
         expectedError bool
     }{
         {
-            name:         "unnamed root compound tag",
-            inputTagName: "",
-            input: map[string]interface{}{
+            name:  "unnamed root comound tag",
+            input: test.UnnamedRootCompoundBytes,
+            expected: map[string]interface{}{
                 "ByteTag":   byte(0xFF),
                 "StringTag": "hello, world",
             },
-            expected:      test.UnnamedRootCompoundBytes,
-            expectedError: false,
         },
     }
 
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
-            buf := new(bytes.Buffer)
-            err := Marshall(bufio.NewWriter(buf), tt.inputTagName, tt.input)
+            reader := bufio.NewReader(bytes.NewReader(tt.input))
+
+            var actualRaw interface{}
+            actualRaw = make(map[string]interface{})
+
+            _, err := Unmarshal(reader, reflect.ValueOf(actualRaw))
             if (err != nil) != tt.expectedError {
-                t.Errorf("Marshall() error = %v, wantErr %v", err, tt.expectedError)
+                t.Errorf("Unmarshal() error = %v, wantErr %v", err, tt.expectedError)
                 return
             }
 
-            b := buf.Bytes()
-
-            path, err := os.MkdirTemp("", "nbt")
-            f, _ := os.Create(filepath.Join(path, "bigtest_go.nbt"))
-            w := bufio.NewWriter(f)
-            _, _ = w.Write(b)
-            _ = w.Flush()
-
-            if !bytes.Equal(b, tt.expected) {
-                t.Errorf("got:\n[% 2x]\nwant:\n[% 2x]", b, tt.expected)
+            if !reflect.DeepEqual(tt.expected, actualRaw) {
+                t.Errorf("tags not equal")
+                return
             }
         })
     }
 }
 
-func TestMarshalCompoundStruct(t *testing.T) {
+func TestUnmarshalCompoundStruct(t *testing.T) {
     tests := []struct {
-        name    string
-        tagName string
-        tag     interface{}
-        want    []byte
-        wantErr bool
+        name        string
+        tagBytes    []byte
+        wantTagName string
+        want        interface{}
+        wantErr     bool
     }{
         {
-            name:    "unnamed root compound tag",
-            tagName: "",
-            tag: test.UnnamedRootCompound{
+            name:        "unnamed root compound tag",
+            tagBytes:    test.UnnamedRootCompoundBytes,
+            wantTagName: "",
+            want: test.UnnamedRootCompound{
                 ByteTag:   0xFF,
                 StringTag: "hello, world",
             },
-            want:    test.UnnamedRootCompoundBytes,
             wantErr: false,
         },
         {
-            name:    "bananrama",
-            tagName: "hello world",
-            tag:     test.BananramaStruct,
-            want:    test.BananramaBytes,
-            wantErr: false,
+            name:        "bananrama",
+            tagBytes:    test.BananramaBytes,
+            wantTagName: "",
+            want:        test.BananramaStruct,
+            wantErr:     false,
         },
         {
-            name:    "bigtest",
-            tagName: "Level",
-            tag: test.BigTest{
+            name:        "bigtest",
+            tagBytes:    test.BigTestBytes,
+            wantTagName: "Level",
+            want: test.BigTest{
                 LongTest:   9223372036854775807,
                 ShortTest:  32767,
                 StringTest: "HELLO WORLD THIS IS A TEST STRING \xc3\x85\xc3\x84\xc3\x96!",
@@ -112,30 +106,25 @@ func TestMarshalCompoundStruct(t *testing.T) {
                 ByteArrayTest: test.BigTestByteArray(),
                 DoubleTest:    0.49312871321823148,
             },
-            want:    test.BigTestBytes,
             wantErr: false,
         },
     }
 
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
-            buf := new(bytes.Buffer)
-            err := Marshall(bufio.NewWriter(buf), tt.tagName, tt.tag)
+            reader := bufio.NewReader(bytes.NewReader(tt.tagBytes))
+
+            actualRaw := reflect.New(reflect.TypeOf(tt.want)).Elem()
+
+            _, err := Unmarshal(reader, actualRaw)
             if (err != nil) != tt.wantErr {
-                t.Errorf("Marshall() error = %v, wantErr %v", err, tt.wantErr)
+                t.Errorf("Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
                 return
             }
 
-            b := buf.Bytes()
-
-            path, err := os.MkdirTemp("", "nbt")
-            f, _ := os.Create(filepath.Join(path, "bigtest_go.nbt"))
-            w := bufio.NewWriter(f)
-            _, _ = w.Write(b)
-            _ = w.Flush()
-
-            if !bytes.Equal(b, tt.want) {
-                t.Errorf("got:\n[% 2x]\nwant:\n[% 2x]", b, tt.want)
+            if !reflect.DeepEqual(tt.want, actualRaw.Interface()) {
+                t.Errorf("tags not equal")
+                return
             }
         })
     }

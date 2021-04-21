@@ -5,7 +5,7 @@ import (
     "reflect"
 )
 
-func Marshall(writer *bufio.Writer, tagName string, value interface{}) (err error) {
+func Marshal(writer *bufio.Writer, tagName string, value interface{}) (err error) {
     tagType := TypeOf(reflect.TypeOf(value))
 
     err = writeTagType(writer, tagType)
