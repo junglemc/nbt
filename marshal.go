@@ -6,7 +6,7 @@ import (
 )
 
 func Marshal(writer *bufio.Writer, tagName string, value interface{}) (err error) {
-    tagType := TypeOf(reflect.TypeOf(value))
+    tagType := typeOf(reflect.TypeOf(value))
 
     err = writeTagType(writer, tagType)
     if err != nil {
@@ -55,7 +55,7 @@ func writeValue(writer *bufio.Writer, tagType TagType, value interface{}) error 
     return nil
 }
 
-func TypeOf(t reflect.Type) TagType {
+func typeOf(t reflect.Type) TagType {
     switch t.Kind() {
     case reflect.Uint8:
         return TagByte

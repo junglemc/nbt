@@ -310,7 +310,7 @@ func writeString(writer *bufio.Writer, v string) error {
 }
 
 func writeList(writer *bufio.Writer, v reflect.Value) (err error) {
-    nestedTagType := TypeOf(v.Type().Elem())
+    nestedTagType := typeOf(v.Type().Elem())
 
     n := v.Len()
     if n <= 0 {
@@ -339,7 +339,7 @@ func writeCompound(writer *bufio.Writer, v reflect.Value) (err error) {
     if v.Type().Kind() == reflect.Map {
         mapRange := v.MapRange()
         for mapRange.Next() {
-            nestedTagType := TypeOf(reflect.TypeOf(mapRange.Value().Interface()))
+            nestedTagType := typeOf(reflect.TypeOf(mapRange.Value().Interface()))
 
             err = writeTagType(writer, nestedTagType)
             if err != nil {
@@ -369,7 +369,7 @@ func writeCompound(writer *bufio.Writer, v reflect.Value) (err error) {
                 nestedTagName = f.Name
             }
 
-            nestedTagType := TypeOf(f.Type)
+            nestedTagType := typeOf(f.Type)
             if f.Tag.Get("nbt_type") == "list" {
                 nestedTagType = TagList
             }
