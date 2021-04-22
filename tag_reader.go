@@ -4,7 +4,9 @@ import (
     "bufio"
     "errors"
     "fmt"
+    "github.com/junglemc/mc"
     "reflect"
+    "strings"
 )
 
 func readTagByte(reader *bufio.Reader, v reflect.Value) (err error) {
@@ -131,6 +133,16 @@ func readTagString(reader *bufio.Reader, v reflect.Value) (err error) {
     value, err := readString(reader)
     if err != nil {
         return
+    }
+
+    if v.Type() == reflect.TypeOf(mc.Identifier{}) {
+        ident := mc.Identifier{}
+
+        dataSplit := strings.Split(value, ":")
+        ident.Prefix = dataSplit[0]
+        ident.Name = dataSplit[1]
+
+        v.Set(reflect.ValueOf(ident))
     }
 
     switch kind := v.Kind(); kind {

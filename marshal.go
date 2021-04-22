@@ -2,6 +2,7 @@ package nbt
 
 import (
 	"bufio"
+	"github.com/junglemc/mc"
 	"reflect"
 )
 
@@ -47,6 +48,9 @@ func writeValue(writer *bufio.Writer, tagType namedTagType, value interface{}) e
 	case tagDouble:
 		return writeFloat64(writer, value.(float64))
 	case tagString:
+		if reflect.TypeOf(value) == reflect.TypeOf(mc.Identifier{}) {
+			return writeString(writer, value.(mc.Identifier).String())
+		}
 		return writeString(writer, value.(string))
 	case tagList:
 		return writeList(writer, reflect.ValueOf(value))
@@ -63,6 +67,10 @@ func writeValue(writer *bufio.Writer, tagType namedTagType, value interface{}) e
 }
 
 func typeOf(t reflect.Type) namedTagType {
+	if t == reflect.TypeOf(mc.Identifier{}) {
+		return tagString
+	}
+
 	switch t.Kind() {
 	case reflect.Uint8, reflect.Bool:
 		return tagByte
