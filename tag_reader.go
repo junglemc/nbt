@@ -14,12 +14,22 @@ func readTagByte(reader *bufio.Reader, v reflect.Value) (err error) {
     }
 
     switch kind := v.Kind(); kind {
+    case reflect.Bool:
+        if byte(value) == 1 {
+            v.SetBool(true)
+        } else {
+            v.SetBool(false)
+        }
+        break
     case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
         v.SetInt(int64(value))
+        break
     case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
         v.SetUint(uint64(value))
+        break
     case reflect.Interface:
         v.Set(reflect.ValueOf(value))
+        break
     default:
         return errors.New("cannot parse tagByte as " + kind.String())
     }
