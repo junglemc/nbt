@@ -258,8 +258,8 @@ func writeByteSlice(writer *bufio.Writer, v []byte) error {
 	return nil
 }
 
-func writeInt32Slice(writer *bufio.Writer, v []int32) (err error) {
-	n := len(v)
+func writeInt32Slice(writer *bufio.Writer, v reflect.Value) (err error) {
+	n := v.Len()
 
 	err = writeInt32(writer, int32(n))
 	if err != nil {
@@ -267,7 +267,7 @@ func writeInt32Slice(writer *bufio.Writer, v []int32) (err error) {
 	}
 
 	for i := 0; i < n; i++ {
-		err = writeInt32(writer, v[i])
+		err = writeInt32(writer, int32(v.Index(i).Int()))
 		if err != nil {
 			return
 		}
@@ -275,8 +275,8 @@ func writeInt32Slice(writer *bufio.Writer, v []int32) (err error) {
 	return
 }
 
-func writeInt64Slice(writer *bufio.Writer, v []int64) (err error) {
-	n := len(v)
+func writeInt64Slice(writer *bufio.Writer, v reflect.Value) (err error) {
+	n := v.Len()
 
 	err = writeInt32(writer, int32(n))
 	if err != nil {
@@ -284,7 +284,7 @@ func writeInt64Slice(writer *bufio.Writer, v []int64) (err error) {
 	}
 
 	for i := 0; i < n; i++ {
-		err = writeInt64(writer, v[i])
+		err = writeInt64(writer, v.Index(i).Int())
 		if err != nil {
 			return
 		}

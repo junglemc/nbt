@@ -2,7 +2,6 @@ package nbt
 
 import (
 	"bufio"
-	"github.com/junglemc/mc"
 	"reflect"
 )
 
@@ -32,50 +31,45 @@ func Marshal(writer *bufio.Writer, tagName string, value interface{}) (err error
 }
 
 func writeValue(writer *bufio.Writer, tagType namedTagType, value interface{}) error {
+	v := reflect.ValueOf(value)
+
 	switch tagType {
 	case tagByte:
 		if reflect.TypeOf(value).Kind() == reflect.Bool {
-			if value.(bool) {
+			if v.Bool() {
 				return writeByte(writer, 1)
 			} else {
 				return writeByte(writer, 0)
 			}
 		}
-		return writeByte(writer, value.(byte))
+		return writeByte(writer, byte(v.Uint()))
 	case tagShort:
-		return writeInt16(writer, value.(int16))
+		return writeInt16(writer, int16(v.Int()))
 	case tagInt:
-		return writeInt32(writer, value.(int32))
+		return writeInt32(writer, int32(v.Int()))
 	case tagLong:
-		return writeInt64(writer, value.(int64))
+		return writeInt64(writer, v.Int())
 	case tagFloat:
-		return writeFloat32(writer, value.(float32))
+		return writeFloat32(writer, float32(v.Float()))
 	case tagDouble:
-		return writeFloat64(writer, value.(float64))
+		return writeFloat64(writer, v.Float())
 	case tagString:
-		if reflect.TypeOf(value) == reflect.TypeOf(mc.Identifier{}) {
-			return writeString(writer, value.(mc.Identifier).String())
-		}
-		return writeString(writer, value.(string))
+		return writeString(writer, v.String())
 	case tagList:
-		return writeList(writer, reflect.ValueOf(value))
+		return writeList(writer, v)
 	case tagCompound:
 		return writeCompound(writer, value)
 	case tagByteArray:
-		return writeByteSlice(writer, value.([]byte))
+		return writeByteSlice(writer, v.Bytes())
 	case tagIntArray:
-		return writeInt32Slice(writer, value.([]int32))
+		return writeInt32Slice(writer, v)
 	case tagLongArray:
-		return writeInt64Slice(writer, value.([]int64))
+		return writeInt64Slice(writer, v)
 	}
 	return nil
 }
 
 func typeOf(t reflect.Type) namedTagType {
-	if t == reflect.TypeOf(mc.Identifier{}) {
-		return tagString
-	}
-
 	switch t.Kind() {
 	case reflect.Uint8, reflect.Bool:
 		return tagByte
