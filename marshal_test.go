@@ -112,16 +112,16 @@ func TestMarshalCompoundStruct(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			b := Marshal(tt.tagName, tt.tag)
+			data := Marshal(tt.tagName, tt.tag)
 
 			path, _ := os.MkdirTemp("", "nbt")
 			f, _ := os.Create(filepath.Join(path, "bigtest_go.nbt"))
 			w := bufio.NewWriter(f)
-			_, _ = w.Write(b)
+			_, _ = w.Write(data)
 			_ = w.Flush()
 
-			if !bytes.Equal(b, tt.want) {
-				t.Errorf("got:\n[% 2x]\nwant:\n[% 2x]", b, tt.want)
+			if !bytes.Equal(data, tt.want) {
+				t.Errorf("got:\n[% 2x]\nwant:\n[% 2x]", data, tt.want)
 			}
 		})
 	}
