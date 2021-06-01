@@ -1,7 +1,7 @@
 package nbt
 
 import (
-	"bufio"
+	"bytes"
 	"errors"
 	"math"
 	"reflect"
@@ -26,18 +26,14 @@ const (
 	tagNone = 0xFF
 )
 
-func readTagType(reader *bufio.Reader) (t namedTagType, err error) {
-	tb, err := readByte(reader)
+func readTagType(buf *bytes.Buffer) (t namedTagType, err error) {
+	tb, err := buf.ReadByte()
 	return namedTagType(tb), err
 }
 
-func readByte(reader *bufio.Reader) (v byte, err error) {
-	return reader.ReadByte()
-}
-
-func readUInt16(reader *bufio.Reader) (uint16, error) {
+func readUInt16(buf *bytes.Buffer) (uint16, error) {
 	b := make([]byte, 2)
-	n, err := reader.Read(b)
+	n, err := buf.Read(b)
 	if err != nil {
 		return 0, err
 	}
@@ -50,17 +46,17 @@ func readUInt16(reader *bufio.Reader) (uint16, error) {
 	return uint16(b[0])<<8 | uint16(b[1]), nil
 }
 
-func readInt16(reader *bufio.Reader) (int16, error) {
-	uv, err := readUInt16(reader)
+func readInt16(buf *bytes.Buffer) (int16, error) {
+	uv, err := readUInt16(buf)
 	if err != nil {
 		return 0, err
 	}
 	return int16(uv), nil
 }
 
-func readUInt32(reader *bufio.Reader) (uint32, error) {
+func readUInt32(buf *bytes.Buffer) (uint32, error) {
 	b := make([]byte, 4)
-	n, err := reader.Read(b)
+	n, err := buf.Read(b)
 	if err != nil {
 		return 0, err
 	}
@@ -73,17 +69,17 @@ func readUInt32(reader *bufio.Reader) (uint32, error) {
 	return uint32(b[0])<<24 | uint32(b[1])<<16 | uint32(b[2])<<8 | uint32(b[3]), nil
 }
 
-func readInt32(reader *bufio.Reader) (int32, error) {
-	v, err := readUInt32(reader)
+func readInt32(buf *bytes.Buffer) (int32, error) {
+	v, err := readUInt32(buf)
 	if err != nil {
 		return 0, err
 	}
 	return int32(v), nil
 }
 
-func readUInt64(reader *bufio.Reader) (uint64, error) {
+func readUInt64(buf *bytes.Buffer) (uint64, error) {
 	b := make([]byte, 8)
-	n, err := reader.Read(b)
+	n, err := buf.Read(b)
 	if err != nil {
 		return 0, err
 	}
@@ -96,37 +92,37 @@ func readUInt64(reader *bufio.Reader) (uint64, error) {
 	return uint64(b[0])<<56 | uint64(b[1])<<48 | uint64(b[2])<<40 | uint64(b[3])<<32 | uint64(b[4])<<24 | uint64(b[5])<<16 | uint64(b[6])<<8 | uint64(b[7]), nil
 }
 
-func readInt64(reader *bufio.Reader) (int64, error) {
-	v, err := readUInt64(reader)
+func readInt64(buf *bytes.Buffer) (int64, error) {
+	v, err := readUInt64(buf)
 	if err != nil {
 		return 0, err
 	}
 	return int64(v), nil
 }
 
-func readFloat32(reader *bufio.Reader) (float32, error) {
-	v, err := readUInt32(reader)
+func readFloat32(buf *bytes.Buffer) (float32, error) {
+	v, err := readUInt32(buf)
 	if err != nil {
 		return 0, err
 	}
 	return math.Float32frombits(v), nil
 }
 
-func readFloat64(reader *bufio.Reader) (float64, error) {
-	v, err := readUInt64(reader)
+func readFloat64(buf *bytes.Buffer) (float64, error) {
+	v, err := readUInt64(buf)
 	if err != nil {
 		return 0, err
 	}
 	return math.Float64frombits(v), nil
 }
 
-func readByteSlice(reader *bufio.Reader) ([]byte, error) {
-	length, err := readInt32(reader)
+func readByteSlice(buf *bytes.Buffer) ([]byte, error) {
+	length, err := readInt32(buf)
 	if err != nil {
 		return nil, err
 	}
-	v := make([]byte, length)
-	readBytes, err := reader.Read(v)
+	v := make([]byte, length, length)
+	readBytes, err := buf.Read(v)
 	if readBytes > int(length) {
 		return v, errors.New("read too many bytes")
 	}
@@ -136,9 +132,38 @@ func readByteSlice(reader *bufio.Reader) ([]byte, error) {
 	return v, nil
 }
 
-// TODO: Modified UTF-8 format
-func readString(reader *bufio.Reader) (string, error) {
-	length, err := readUInt16(reader)
+func readInt32Slice(buf *bytes.Buffer) ([]int32, error) {
+	length, err := readInt32(buf)
+	if err != nil {
+		return nil, err
+	}
+	v := make([]int32, length, length)
+	for i:=0; i<int(length); i++ {
+		v[i], err = readInt32(buf)
+		if err != nil {
+			return v, err
+		}
+	}
+	return v, nil
+}
+
+func readInt64Slice(buf *bytes.Buffer) ([]int64, error) {
+	length, err := readInt32(buf)
+	if err != nil {
+		return nil, err
+	}
+	v := make([]int64, length, length)
+	for i:=0; i<int(length); i++ {
+		v[i], err = readInt64(buf)
+		if err != nil {
+			return v, err
+		}
+	}
+	return v, nil
+}
+
+func readString(buf *bytes.Buffer) (string, error) {
+	length, err := readUInt16(buf)
 	if err != nil {
 		return "", err
 	}
@@ -146,8 +171,8 @@ func readString(reader *bufio.Reader) (string, error) {
 		return "", nil
 	}
 
-	v := make([]byte, length)
-	readBytes, err := reader.Read(v)
+	v := make([]byte, length, length)
+	readBytes, err := buf.Read(v)
 	if err != nil {
 		return "", err
 	}
@@ -160,185 +185,94 @@ func readString(reader *bufio.Reader) (string, error) {
 	return string(v), nil
 }
 
-func writeTagType(writer *bufio.Writer, t namedTagType) error {
-	err := writeByte(writer, byte(t))
-	if err != nil {
-		return err
-	}
-	return nil
+func writeTagType(t namedTagType) []byte {
+	return []byte{byte(t)}
 }
 
-func writeByte(writer *bufio.Writer, v byte) error {
-	err := writer.WriteByte(v)
-	if err != nil {
-		return err
-	}
-	err = writer.Flush()
-	if err != nil {
-		return err
-	}
-	return nil
+func writeByte(v byte) []byte {
+	return []byte{v}
 }
 
-func writeUInt16(writer *bufio.Writer, v uint16) error {
-	b := []byte{byte(v >> 8), byte(v)}
-	_, err := writer.Write(b)
-	if err != nil {
-		return err
-	}
-
-	err = writer.Flush()
-	if err != nil {
-		return err
-	}
-	return nil
+func writeUInt16(v uint16) []byte {
+	return []byte{byte(v >> 8), byte(v)}
 }
 
-func writeInt16(writer *bufio.Writer, v int16) error {
-	return writeUInt16(writer, uint16(v))
+func writeInt16(v int16) []byte {
+	return writeUInt16(uint16(v))
 }
 
-func writeUInt32(writer *bufio.Writer, v uint32) error {
-	b := []byte{byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
-	_, err := writer.Write(b)
-	if err != nil {
-		return err
-	}
-
-	err = writer.Flush()
-	if err != nil {
-		return err
-	}
-	return nil
+func writeUInt32(v uint32) []byte {
+	return []byte{byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
 }
 
-func writeInt32(writer *bufio.Writer, v int32) error {
-	return writeUInt32(writer, uint32(v))
+func writeInt32(v int32) []byte {
+	return writeUInt32(uint32(v))
 }
 
-func writeUInt64(writer *bufio.Writer, v uint64) error {
-	b := []byte{byte(v >> 56), byte(v >> 48), byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
-	_, err := writer.Write(b)
-	if err != nil {
-		return err
-	}
-
-	err = writer.Flush()
-	if err != nil {
-		return err
-	}
-	return nil
+func writeUInt64(v uint64) []byte {
+	return []byte{byte(v >> 56), byte(v >> 48), byte(v >> 40), byte(v >> 32), byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)}
 }
 
-func writeInt64(writer *bufio.Writer, v int64) error {
-	return writeUInt64(writer, uint64(v))
+func writeInt64(v int64) []byte {
+	return writeUInt64(uint64(v))
 }
 
-func writeFloat32(writer *bufio.Writer, v float32) error {
-	return writeUInt32(writer, math.Float32bits(v))
+func writeFloat32(v float32) []byte {
+	return writeUInt32(math.Float32bits(v))
 }
 
-func writeFloat64(writer *bufio.Writer, v float64) error {
-	return writeUInt64(writer, math.Float64bits(v))
+func writeFloat64(v float64) []byte {
+	return writeUInt64(math.Float64bits(v))
 }
 
-func writeByteSlice(writer *bufio.Writer, v []byte) error {
-	err := writeInt32(writer, int32(len(v)))
-	if err != nil {
-		return err
-	}
-	_, err = writer.Write(v)
-	if err != nil {
-		return err
-	}
-	err = writer.Flush()
-	if err != nil {
-		return err
-	}
-	return nil
+func writeByteSlice(v []byte) []byte {
+	return append(writeInt32(int32(len(v))), v...)
 }
 
-func writeInt32Slice(writer *bufio.Writer, v reflect.Value) (err error) {
-	n := v.Len()
-
-	err = writeInt32(writer, int32(n))
-	if err != nil {
-		return
+func writeInt32Slice(v reflect.Value) []byte {
+	buf := &bytes.Buffer{}
+	buf.Write(writeInt32(int32(v.Len())))
+	for i := 0; i < v.Len(); i++ {
+		buf.Write(writeInt32(int32(v.Index(i).Int())))
 	}
-
-	for i := 0; i < n; i++ {
-		err = writeInt32(writer, int32(v.Index(i).Int()))
-		if err != nil {
-			return
-		}
-	}
-	return
+	return buf.Bytes()
 }
 
-func writeInt64Slice(writer *bufio.Writer, v reflect.Value) (err error) {
-	n := v.Len()
-
-	err = writeInt32(writer, int32(n))
-	if err != nil {
-		return
+func writeInt64Slice(v reflect.Value) []byte {
+	buf := &bytes.Buffer{}
+	buf.Write(writeInt32(int32(v.Len())))
+	for i := 0; i < v.Len(); i++ {
+		buf.Write(writeInt64(v.Index(i).Int()))
 	}
-
-	for i := 0; i < n; i++ {
-		err = writeInt64(writer, v.Index(i).Int())
-		if err != nil {
-			return
-		}
-	}
-	return
+	return buf.Bytes()
 }
 
-// TODO: Modified UTF-8 format
-func writeString(writer *bufio.Writer, v string) error {
-	err := writeUInt16(writer, uint16(len(v)))
-	if err != nil {
-		return err
-	}
-	_, err = writer.Write([]byte(v))
-	if err != nil {
-		return err
-	}
-	err = writer.Flush()
-	if err != nil {
-		return err
-	}
-	return nil
+func writeString(v string) []byte {
+	return append(writeUInt16(uint16(len(v))), []byte(v)...)
 }
 
-func writeList(writer *bufio.Writer, v reflect.Value) (err error) {
+func writeList(v reflect.Value) []byte {
+	buf := &bytes.Buffer{}
+
 	nestedTagType := typeOf(v.Type().Elem())
-
-	n := v.Len()
-	if n <= 0 {
+	if v.Len() <= 0 {
 		nestedTagType = tagEnd // Mimic notchian behavior
 	}
+	buf.Write(writeTagType(nestedTagType))
 
-	err = writeTagType(writer, nestedTagType)
-	if err != nil {
-		return
+	buf.Write(writeInt32(int32(v.Len())))
+	for i := 0; i < v.Len(); i++ {
+		buf.Write(writeValue(nestedTagType, v.Index(i).Interface()))
 	}
-
-	if err = writeInt32(writer, int32(n)); err != nil {
-		return
-	}
-
-	for i := 0; i < n; i++ {
-		err = writeValue(writer, nestedTagType, v.Index(i).Interface())
-		if err != nil {
-			return
-		}
-	}
-	return
+	return buf.Bytes()
 }
 
-func writeCompound(writer *bufio.Writer, value interface{}) (err error) {
+func writeCompound(value interface{}) []byte {
 	if value == nil {
-		return writeTagType(writer, tagEnd)
+		return writeTagType(tagEnd)
 	}
+
+	buf := &bytes.Buffer{}
 
 	v := reflect.ValueOf(value)
 	if v.Type().Kind() == reflect.Map {
@@ -346,20 +280,9 @@ func writeCompound(writer *bufio.Writer, value interface{}) (err error) {
 		for mapRange.Next() {
 			nestedTagType := typeOf(reflect.TypeOf(mapRange.Value().Interface()))
 
-			err = writeTagType(writer, nestedTagType)
-			if err != nil {
-				return
-			}
-
-			err = writeString(writer, mapRange.Key().String())
-			if err != nil {
-				return
-			}
-
-			err = writeValue(writer, nestedTagType, mapRange.Value().Interface())
-			if err != nil {
-				return
-			}
+			buf.Write(writeTagType(nestedTagType))
+			buf.Write(writeString(mapRange.Key().String()))
+			buf.Write(writeValue(nestedTagType, mapRange.Value().Interface()))
 		}
 	} else {
 		numFields := v.NumField()
@@ -393,7 +316,7 @@ func writeCompound(writer *bufio.Writer, value interface{}) (err error) {
 				if optionalField.Type().Kind() == reflect.Bool {
 					isPresent = optionalField.Bool()
 				} else {
-					return errors.New("optional field type not handled: " + optionalField.Kind().String())
+					panic(errors.New("optional field type not handled: " + optionalField.Kind().String()))
 				}
 			}
 
@@ -402,21 +325,12 @@ func writeCompound(writer *bufio.Writer, value interface{}) (err error) {
 				continue
 			}
 
-			err = writeTagType(writer, nestedTagType)
-			if err != nil {
-				return
-			}
-
-			err = writeString(writer, nestedTagName)
-			if err != nil {
-				return
-			}
-
-			err = writeValue(writer, nestedTagType, v.Field(i).Interface())
-			if err != nil {
-				return
-			}
+			buf.Write(writeTagType(nestedTagType))
+			buf.Write(writeString( nestedTagName))
+			buf.Write(writeValue(nestedTagType, v.Field(i).Interface()))
 		}
 	}
-	return writeTagType(writer, tagEnd)
+
+	buf.Write(writeTagType(tagEnd))
+	return buf.Bytes()
 }

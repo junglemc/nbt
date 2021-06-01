@@ -1,14 +1,14 @@
 package nbt
 
 import (
-	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"reflect"
 )
 
-func readTagByte(reader *bufio.Reader, v reflect.Value) (err error) {
-	value, err := readByte(reader)
+func readTagByte(buf *bytes.Buffer, v reflect.Value) (err error) {
+	value, err := buf.ReadByte()
 	if err != nil {
 		return
 	}
@@ -36,8 +36,8 @@ func readTagByte(reader *bufio.Reader, v reflect.Value) (err error) {
 	return
 }
 
-func readTagShort(reader *bufio.Reader, v reflect.Value) (err error) {
-	value, err := readInt16(reader)
+func readTagShort(buf *bytes.Buffer, v reflect.Value) (err error) {
+	value, err := readInt16(buf)
 	if err != nil {
 		return
 	}
@@ -55,8 +55,8 @@ func readTagShort(reader *bufio.Reader, v reflect.Value) (err error) {
 	return
 }
 
-func readTagInt(reader *bufio.Reader, v reflect.Value) (err error) {
-	value, err := readInt32(reader)
+func readTagInt(buf *bytes.Buffer, v reflect.Value) (err error) {
+	value, err := readInt32(buf)
 	if err != nil {
 		return
 	}
@@ -74,8 +74,8 @@ func readTagInt(reader *bufio.Reader, v reflect.Value) (err error) {
 	return
 }
 
-func readTagLong(reader *bufio.Reader, v reflect.Value) (err error) {
-	value, err := readInt64(reader)
+func readTagLong(buf *bytes.Buffer, v reflect.Value) (err error) {
+	value, err := readInt64(buf)
 	if err != nil {
 		return
 	}
@@ -93,8 +93,8 @@ func readTagLong(reader *bufio.Reader, v reflect.Value) (err error) {
 	return
 }
 
-func readTagFloat(reader *bufio.Reader, v reflect.Value) (err error) {
-	value, err := readFloat32(reader)
+func readTagFloat(buf *bytes.Buffer, v reflect.Value) (err error) {
+	value, err := readFloat32(buf)
 	if err != nil {
 		return
 	}
@@ -110,8 +110,8 @@ func readTagFloat(reader *bufio.Reader, v reflect.Value) (err error) {
 	return
 }
 
-func readTagDouble(reader *bufio.Reader, v reflect.Value) (err error) {
-	value, err := readFloat64(reader)
+func readTagDouble(buf *bytes.Buffer, v reflect.Value) (err error) {
+	value, err := readFloat64(buf)
 	if err != nil {
 		return
 	}
@@ -127,8 +127,8 @@ func readTagDouble(reader *bufio.Reader, v reflect.Value) (err error) {
 	return
 }
 
-func readTagString(reader *bufio.Reader, v reflect.Value) (err error) {
-	value, err := readString(reader)
+func readTagString(buf *bytes.Buffer, v reflect.Value) (err error) {
+	value, err := readString(buf)
 	if err != nil {
 		return
 	}
@@ -146,13 +146,13 @@ func readTagString(reader *bufio.Reader, v reflect.Value) (err error) {
 	return
 }
 
-func readTagList(reader *bufio.Reader, v reflect.Value) (err error) {
-	listType, err := readTagType(reader)
+func readTagList(buf *bytes.Buffer, v reflect.Value) (err error) {
+	listType, err := readTagType(buf)
 	if err != nil {
 		return
 	}
 
-	length, err := readInt32(reader)
+	length, err := readInt32(buf)
 	if err != nil {
 		return
 	}
@@ -175,7 +175,7 @@ func readTagList(reader *bufio.Reader, v reflect.Value) (err error) {
 	}
 
 	for i := 0; i < int(length); i++ {
-		err = readValue(reader, listType, v.Index(i))
+		err = readValue(buf, listType, v.Index(i))
 		if err != nil {
 			return
 		}
@@ -183,12 +183,12 @@ func readTagList(reader *bufio.Reader, v reflect.Value) (err error) {
 	return
 }
 
-func readTagCompoundStruct(reader *bufio.Reader, v reflect.Value) (err error) {
+func readTagCompoundStruct(buf *bytes.Buffer, v reflect.Value) (err error) {
 	for {
 		var cmpTagType namedTagType
 		var cmpTagName string
 
-		cmpTagType, err = readTagType(reader)
+		cmpTagType, err = readTagType(buf)
 		if err != nil {
 			return
 		}
@@ -197,7 +197,7 @@ func readTagCompoundStruct(reader *bufio.Reader, v reflect.Value) (err error) {
 			break
 		}
 
-		cmpTagName, err = readString(reader)
+		cmpTagName, err = readString(buf)
 		if err != nil {
 			return
 		}
@@ -214,7 +214,7 @@ func readTagCompoundStruct(reader *bufio.Reader, v reflect.Value) (err error) {
 			}
 
 			if tagName == cmpTagName {
-				err = readValue(reader, cmpTagType, v.Field(i))
+				err = readValue(buf, cmpTagType, v.Field(i))
 				if err != nil {
 					return
 				}
@@ -225,7 +225,7 @@ func readTagCompoundStruct(reader *bufio.Reader, v reflect.Value) (err error) {
 	return
 }
 
-func readTagCompoundMap(reader *bufio.Reader, v reflect.Value) (err error) {
+func readTagCompoundMap(buf *bytes.Buffer, v reflect.Value) (err error) {
 	if v.Type().Key().Kind() != reflect.String {
 		return errors.New("map key should be of type string")
 	}
@@ -238,7 +238,7 @@ func readTagCompoundMap(reader *bufio.Reader, v reflect.Value) (err error) {
 		var cmpTagType namedTagType
 		var cmpTagName string
 
-		cmpTagType, err = readTagType(reader)
+		cmpTagType, err = readTagType(buf)
 		if err != nil {
 			return
 		}
@@ -247,13 +247,9 @@ func readTagCompoundMap(reader *bufio.Reader, v reflect.Value) (err error) {
 			break
 		}
 
-		cmpTagName, err = readString(reader)
+		cmpTagName, err = readString(buf)
 		if err != nil {
 			return
-		}
-
-		if err != nil {
-			return err
 		}
 
 		var val interface{}
@@ -297,7 +293,7 @@ func readTagCompoundMap(reader *bufio.Reader, v reflect.Value) (err error) {
 			break
 		}
 
-		err = readValue(reader, cmpTagType, reflect.ValueOf(&val).Elem())
+		err = readValue(buf, cmpTagType, reflect.ValueOf(&val).Elem())
 		if err != nil {
 			return err
 		}
@@ -306,8 +302,8 @@ func readTagCompoundMap(reader *bufio.Reader, v reflect.Value) (err error) {
 	return
 }
 
-func readTagByteArray(reader *bufio.Reader, v reflect.Value) (err error) {
-	b, err := readByteSlice(reader)
+func readTagByteArray(buf *bytes.Buffer, v reflect.Value) (err error) {
+	b, err := readByteSlice(buf)
 	if err != nil {
 		return
 	}
@@ -320,62 +316,20 @@ func readTagByteArray(reader *bufio.Reader, v reflect.Value) (err error) {
 	return
 }
 
-func readTagIntArray(reader *bufio.Reader, v reflect.Value) (err error) {
-	length, err := readInt32(reader)
+func readTagIntArray(buf *bytes.Buffer, v reflect.Value) (err error) {
+	b, err := readInt32Slice(buf)
 	if err != nil {
 		return
 	}
-
-	if length < 0 {
-		length = 0
-	}
-
-	if v.Type().Kind() != reflect.Slice {
-		return errors.New("slice required")
-	}
-
-	elemType := v.Type().Elem().Kind()
-	if elemType != reflect.Int && elemType != reflect.Int32 {
-		return errors.New("slice of int or int32 type required")
-	}
-	v.Set(reflect.MakeSlice(v.Type(), int(length), int(length)))
-	for i := 0; i < int(length); i++ {
-		var val int32
-		val, err = readInt32(reader)
-		if err != nil {
-			return
-		}
-		v.Index(i).SetInt(int64(val))
-	}
+	v.Set(reflect.ValueOf(b))
 	return
 }
 
-func readTagLongArray(reader *bufio.Reader, v reflect.Value) (err error) {
-	length, err := readInt32(reader)
+func readTagLongArray(buf *bytes.Buffer, v reflect.Value) (err error) {
+	b, err := readInt64Slice(buf)
 	if err != nil {
 		return
 	}
-
-	if length < 0 {
-		length = 0
-	}
-
-	if v.Type().Kind() != reflect.Slice {
-		return errors.New("slice required")
-	}
-
-	elemType := v.Type().Elem().Kind()
-	if elemType != reflect.Int && elemType != reflect.Int64 {
-		return errors.New("slice of int or int64 type required")
-	}
-	v.Set(reflect.MakeSlice(v.Type(), int(length), int(length)))
-	for i := 0; i < int(length); i++ {
-		var val int64
-		val, err = readInt64(reader)
-		if err != nil {
-			return
-		}
-		v.Index(i).SetInt(val)
-	}
+	v.Set(reflect.ValueOf(b))
 	return
 }

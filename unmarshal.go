@@ -1,12 +1,13 @@
 package nbt
 
 import (
-	"bufio"
+	"bytes"
 	"reflect"
 )
 
-func Unmarshal(reader *bufio.Reader, value reflect.Value) (tagName string, err error) {
-	tagType, err := readTagType(reader)
+func Unmarshal(data []byte, value reflect.Value) (tagName string, err error) {
+	buf := bytes.NewBuffer(data)
+	tagType, err := readTagType(buf)
 	if err != nil {
 		return
 	}
@@ -15,49 +16,49 @@ func Unmarshal(reader *bufio.Reader, value reflect.Value) (tagName string, err e
 		return
 	}
 
-	tagName, err = readString(reader)
+	tagName, err = readString(buf)
 	if err != nil {
 		return
 	}
 
-	err = readValue(reader, tagType, value)
+	err = readValue(buf, tagType, value)
 	if err != nil {
 		return
 	}
 	return
 }
 
-func readValue(reader *bufio.Reader, tagType namedTagType, v reflect.Value) error {
+func readValue(buf *bytes.Buffer, tagType namedTagType, v reflect.Value) error {
 	switch tagType {
 	case tagByte:
-		return readTagByte(reader, v)
+		return readTagByte(buf, v)
 	case tagShort:
-		return readTagShort(reader, v)
+		return readTagShort(buf, v)
 	case tagInt:
-		return readTagInt(reader, v)
+		return readTagInt(buf, v)
 	case tagLong:
-		return readTagLong(reader, v)
+		return readTagLong(buf, v)
 	case tagFloat:
-		return readTagFloat(reader, v)
+		return readTagFloat(buf, v)
 	case tagDouble:
-		return readTagDouble(reader, v)
+		return readTagDouble(buf, v)
 	case tagString:
-		return readTagString(reader, v)
+		return readTagString(buf, v)
 	case tagList:
-		return readTagList(reader, v)
+		return readTagList(buf, v)
 	case tagCompound:
 		switch v.Kind() {
 		case reflect.Struct:
-			return readTagCompoundStruct(reader, v)
+			return readTagCompoundStruct(buf, v)
 		case reflect.Map:
-			return readTagCompoundMap(reader, v)
+			return readTagCompoundMap(buf, v)
 		}
 	case tagByteArray:
-		return readTagByteArray(reader, v)
+		return readTagByteArray(buf, v)
 	case tagIntArray:
-		return readTagIntArray(reader, v)
+		return readTagIntArray(buf, v)
 	case tagLongArray:
-		return readTagLongArray(reader, v)
+		return readTagLongArray(buf, v)
 	}
 	return nil
 }

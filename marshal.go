@@ -1,11 +1,11 @@
 package nbt
 
 import (
-	"bufio"
+	"bytes"
 	"reflect"
 )
 
-func Marshal(writer *bufio.Writer, tagName string, value interface{}) (err error) {
+func Marshal(tagName string, value interface{}) []byte {
 	var tagType namedTagType
 	if value == nil {
 		tagType = tagCompound
@@ -13,58 +13,48 @@ func Marshal(writer *bufio.Writer, tagName string, value interface{}) (err error
 		tagType = typeOf(reflect.TypeOf(value))
 	}
 
-	err = writeTagType(writer, tagType)
-	if err != nil {
-		return
-	}
-
-	err = writeString(writer, tagName)
-	if err != nil {
-		return
-	}
-
-	err = writeValue(writer, tagType, value)
-	if err != nil {
-		return
-	}
-	return
+	buf := &bytes.Buffer{}
+	buf.Write(writeTagType(tagType))
+	buf.Write(writeString(tagName))
+	buf.Write(writeValue(tagType, value))
+	return buf.Bytes()
 }
 
-func writeValue(writer *bufio.Writer, tagType namedTagType, value interface{}) error {
+func writeValue(tagType namedTagType, value interface{}) []byte {
 	v := reflect.ValueOf(value)
 
 	switch tagType {
 	case tagByte:
 		if reflect.TypeOf(value).Kind() == reflect.Bool {
 			if v.Bool() {
-				return writeByte(writer, 1)
+				return writeByte(1)
 			} else {
-				return writeByte(writer, 0)
+				return writeByte(0)
 			}
 		}
-		return writeByte(writer, byte(v.Uint()))
+		return writeByte(byte(v.Uint()))
 	case tagShort:
-		return writeInt16(writer, int16(v.Int()))
+		return writeInt16(int16(v.Int()))
 	case tagInt:
-		return writeInt32(writer, int32(v.Int()))
+		return writeInt32(int32(v.Int()))
 	case tagLong:
-		return writeInt64(writer, v.Int())
+		return writeInt64(v.Int())
 	case tagFloat:
-		return writeFloat32(writer, float32(v.Float()))
+		return writeFloat32(float32(v.Float()))
 	case tagDouble:
-		return writeFloat64(writer, v.Float())
+		return writeFloat64(v.Float())
 	case tagString:
-		return writeString(writer, v.String())
+		return writeString(v.String())
 	case tagList:
-		return writeList(writer, v)
+		return writeList(v)
 	case tagCompound:
-		return writeCompound(writer, value)
+		return writeCompound(value)
 	case tagByteArray:
-		return writeByteSlice(writer, v.Bytes())
+		return writeByteSlice(v.Bytes())
 	case tagIntArray:
-		return writeInt32Slice(writer, v)
+		return writeInt32Slice(v)
 	case tagLongArray:
-		return writeInt64Slice(writer, v)
+		return writeInt64Slice(v)
 	}
 	return nil
 }

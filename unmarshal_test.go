@@ -1,8 +1,6 @@
 package nbt
 
 import (
-	"bufio"
-	"bytes"
 	"github.com/junglemc/nbt/test"
 	"reflect"
 	"testing"
@@ -16,7 +14,7 @@ func TestUnmarshalCompoundMap(t *testing.T) {
 		expectedError bool
 	}{
 		{
-			name:  "unnamed root comound tag",
+			name:  "unnamed root compound tag",
 			input: test.UnnamedRootCompoundBytes,
 			expected: map[string]interface{}{
 				"ByteTag":   byte(0xFF),
@@ -27,12 +25,10 @@ func TestUnmarshalCompoundMap(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			reader := bufio.NewReader(bytes.NewReader(tt.input))
-
 			var actualRaw interface{}
 			actualRaw = make(map[string]interface{})
 
-			_, err := Unmarshal(reader, reflect.ValueOf(actualRaw))
+			_, err := Unmarshal(tt.input, reflect.ValueOf(actualRaw))
 			if (err != nil) != tt.expectedError {
 				t.Errorf("Unmarshal() error = %v, wantErr %v", err, tt.expectedError)
 				return
@@ -112,11 +108,9 @@ func TestUnmarshalCompoundStruct(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			reader := bufio.NewReader(bytes.NewReader(tt.tagBytes))
-
 			actualRaw := reflect.New(reflect.TypeOf(tt.want)).Elem()
 
-			_, err := Unmarshal(reader, actualRaw)
+			_, err := Unmarshal(tt.tagBytes, actualRaw)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
 				return

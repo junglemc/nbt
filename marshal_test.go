@@ -31,23 +31,16 @@ func TestMarshalCompoundMap(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			buf := new(bytes.Buffer)
-			err := Marshal(bufio.NewWriter(buf), tt.inputTagName, tt.input)
-			if (err != nil) != tt.expectedError {
-				t.Errorf("Marshal() error = %v, wantErr %v", err, tt.expectedError)
-				return
-			}
+			data := Marshal(tt.inputTagName, tt.input)
 
-			b := buf.Bytes()
-
-			path, err := os.MkdirTemp("", "nbt")
+			path, _ := os.MkdirTemp("", "nbt")
 			f, _ := os.Create(filepath.Join(path, "bigtest_go.nbt"))
 			w := bufio.NewWriter(f)
-			_, _ = w.Write(b)
+			_, _ = w.Write(data)
 			_ = w.Flush()
 
-			if !bytes.Equal(b, tt.expected) {
-				t.Errorf("got:\n[% 2x]\nwant:\n[% 2x]", b, tt.expected)
+			if !bytes.Equal(data, tt.expected) {
+				t.Errorf("got:\n[% 2x]\nwant:\n[% 2x]", data, tt.expected)
 			}
 		})
 	}
@@ -119,16 +112,9 @@ func TestMarshalCompoundStruct(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			buf := new(bytes.Buffer)
-			err := Marshal(bufio.NewWriter(buf), tt.tagName, tt.tag)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Marshal() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
+			b := Marshal(tt.tagName, tt.tag)
 
-			b := buf.Bytes()
-
-			path, err := os.MkdirTemp("", "nbt")
+			path, _ := os.MkdirTemp("", "nbt")
 			f, _ := os.Create(filepath.Join(path, "bigtest_go.nbt"))
 			w := bufio.NewWriter(f)
 			_, _ = w.Write(b)
